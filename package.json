@@ -1,8 +1,8 @@
 {
   "name": "soft-comfort-dark",
   "displayName": "Soft Comfort Dark",
-  "description": "A low-strain dark theme: dim warm-grey background, soft off-white text, muted pastel syntax. No pure black, no pure white, no neon.",
-  "version": "1.0.0",
+  "description": "Low-strain soft-Monokai themes, dark and light: lifted backgrounds, never pure black or white, softened syntax colour.",
+  "version": "1.1.0",
   "publisher": "bitsandbeakers",
   "license": "MIT",
   "repository": {
@@ -20,6 +20,11 @@
         "label": "Soft Comfort Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/soft-comfort-dark-color-theme.json"
+      },
+      {
+        "label": "Soft Comfort Light",
+        "uiTheme": "vs",
+        "path": "./themes/soft-comfort-light-color-theme.json"
       }
     ]
   }

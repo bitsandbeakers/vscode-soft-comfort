@@ -1,11 +1,14 @@
-# Soft Comfort Dark
+# Soft Comfort
 
-A dark VS Code theme built for long sessions and tired eyes.
+Two VS Code themes for long sessions and tired eyes: **Soft Comfort Dark** and **Soft Comfort Light**. Both use Monokai's colour layout (pink keywords, yellow strings, green functions, purple numbers, cyan types, orange parameters), softened.
 
-- **No pure black, no pure white.** Background `#22252b` (dim warm grey), text `#c4c8cf` (soft off-white). Hard black/white edges cause halation, a glow that tires your eyes, especially with astigmatism.
-- **Contrast in a comfort band.** Body text is about 9:1, enough to read easily without glare. Syntax colours sit at 6–8.5:1, and comments at about 4.5:1 so they recede.
-- **Muted pastels only.** Lavender keywords, sage strings, soft-blue functions, sand types, peach numbers. Nothing neon or saturated.
-- **Quiet chrome.** The sidebar, tabs, status bar and panels are one step darker than the editor, with no borders, so your eye stays on the code.
+Built around three problems: text that glows or blurs, tired aching eyes, and squinting.
+
+- **No pure black, no pure white.** Hard black/white edges cause halation, a glow around letters that's worse with astigmatism or after LASIK.
+- **Lifted dark background (`#2b2c30`).** A near-black background makes your pupils open wider, which blurs text more. Charcoal keeps them smaller.
+- **A light twin for bright rooms.** In a bright office, a dark theme forces your eyes to adjust constantly between the screen and the room. Soft Comfort Light is warm paper (`#f3f0e8`) with dark-grey text, not black on white.
+- **Contrast in a comfort band.** Body text is about 8.7:1 in both themes: easy to read, no glare. Syntax colours are 5–9:1, comments 4.5:1 so they recede.
+- **Quiet chrome.** The sidebar, tabs and panels are one step off the editor colour, with no borders.
 
 ## Install
 
@@ -13,28 +16,31 @@ A dark VS Code theme built for long sessions and tired eyes.
 
 1. Download `soft-comfort-dark-<version>.vsix` from [Releases](https://github.com/bitsandbeakers/vscode-soft-comfort/releases).
 2. In VS Code: Extensions view → `...` menu → **Install from VSIX...** and pick the file.
-   Or from a terminal: `code --install-extension soft-comfort-dark-1.0.0.vsix`
-3. Ctrl+K Ctrl+T → **Soft Comfort Dark**.
+   Or from a terminal: `code --install-extension soft-comfort-dark-1.1.0.vsix`
+3. Ctrl+K Ctrl+T → **Soft Comfort Dark** or **Soft Comfort Light**.
 
-**From source:** clone this repo into your extensions folder (`~/.vscode/extensions/soft-comfort-dark`) and reload VS Code.
+## Recommended settings
 
-## Recommended settings for eye strain
-
-The theme is only half of it. These settings take the rest of the strain off:
+The theme is half of it. These settings do the rest:
 
 ```jsonc
 {
-  "workbench.colorTheme": "Soft Comfort Dark",
+  // Follow Windows/macOS light-dark mode: Light in the day, Dark at night.
+  "window.autoDetectColorScheme": true,
+  "workbench.preferredLightColorTheme": "Soft Comfort Light",
+  "workbench.preferredDarkColorTheme": "Soft Comfort Dark",
+  "workbench.colorTheme": "Soft Comfort Light",
+
+  // Thicker strokes blur less than Consolas' thin ones.
+  "editor.fontFamily": "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+  "editor.fontWeight": "500",
   "editor.fontSize": 15,
-  "editor.lineHeight": 1.6,            // more space between lines = less crowding
+  "editor.lineHeight": 1.6,          // more room between lines = less crowding
   "editor.letterSpacing": 0.3,
-  "editor.fontWeight": "400",
-  "editor.cursorBlinking": "solid",    // a blinking cursor keeps pulling your eye
-  "editor.cursorStyle": "line",
+
+  "editor.cursorBlinking": "solid",  // a blinking cursor keeps pulling your eye
+  "editor.minimap.enabled": false,   // less visual noise at the edge
   "editor.renderLineHighlight": "line",
-  "editor.minimap.enabled": false,     // less visual noise at the edge
-  "editor.guides.bracketPairs": false,
-  "editor.bracketPairColorization.enabled": true,
   "editor.smoothScrolling": true,
   "workbench.list.smoothScrolling": true,
   "terminal.integrated.fontSize": 14,
@@ -42,24 +48,30 @@ The theme is only half of it. These settings take the rest of the strain off:
 }
 ```
 
-Good fonts for low strain (all free): **JetBrains Mono**, **IBM Plex Mono**, **Fira Code**, **Cascadia Code**.
+[JetBrains Mono](https://www.jetbrains.com/lp/mono/) is free. On a work machine where you can't install fonts, Cascadia Code ships with Windows Terminal.
 
-Outside the editor: keep the room lit (a dark room makes the screen harsher), lower screen brightness to match the room, and use the 20-20-20 rule (every 20 min, look 20 ft away for 20 s).
+Outside the editor:
+- Match screen brightness to the room. A screen brighter than its surroundings is the biggest strain driver.
+- Use the 20-20-20 rule: every 20 minutes, look 20 feet away for 20 seconds.
+- Blink on purpose. Screen work cuts your blink rate by about half.
 
 ## Palette
 
-| Role | Colour | Contrast vs background |
-| --- | --- | --- |
-| Background | `#22252b` | — |
-| Text | `#c4c8cf` | 9.2 |
-| Comments | `#858c97` | 4.5 |
-| Keywords | `#c3a2d4` | 6.9 |
-| Strings | `#a8c38f` | 8.0 |
-| Functions | `#8fb3d6` | 7.0 |
-| Types | `#d6bd8b` | 8.4 |
-| Numbers / constants | `#dda27e` | 7.0 |
-| Properties | `#9cc2c2` | 8.0 |
-| Errors | `#de8b8b` | 6.0 |
+| Role | Dark | Contrast | Light | Contrast |
+| --- | --- | --- | --- | --- |
+| Background | `#2b2c30` | — | `#f3f0e8` | — |
+| Text | `#cfccc4` | 8.7 | `#45423c` | 8.8 |
+| Comments | `#959285` | 4.5 | `#736e62` | 4.5 |
+| Keywords | `#eb9bb4` | 6.6 | `#a83e66` | 5.2 |
+| Strings | `#d8cf8f` | 8.8 | `#7a6514` | 5.0 |
+| Functions | `#b3cf84` | 8.1 | `#4f7024` | 5.0 |
+| Numbers | `#b9a0e6` | 6.1 | `#6c4fb0` | 5.5 |
+| Types | `#8cc8d4` | 7.5 | `#22707e` | 5.0 |
+| Parameters | `#e0a477` | 6.5 | `#9a5320` | 5.1 |
+
+## Tuning
+
+Both themes are generated from one palette each in `build/generate.js`. Change a colour there, run `node build/generate.js`, and it rewrites `themes/` and prints every colour's contrast.
 
 ## License
 
