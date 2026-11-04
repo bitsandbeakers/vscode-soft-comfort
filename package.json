@@ -1,0 +1,26 @@
+{
+  "name": "soft-comfort-dark",
+  "displayName": "Soft Comfort Dark",
+  "description": "A low-strain dark theme: dim warm-grey background, soft off-white text, muted pastel syntax. No pure black, no pure white, no neon.",
+  "version": "1.0.0",
+  "publisher": "bitsandbeakers",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bitsandbeakers/vscode-soft-comfort.git"
+  },
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": ["Themes"],
+  "keywords": ["theme", "dark", "soft", "low contrast", "eye strain", "comfort"],
+  "contributes": {
+    "themes": [
+      {
+        "label": "Soft Comfort Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/soft-comfort-dark-color-theme.json"
+      }
+    ]
+  }
+}
