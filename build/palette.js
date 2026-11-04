@@ -47,7 +47,7 @@
       for (let i = 0; i < 40 && contrast(c, bgHex) < min; i++) c = hsl(h, s, (l += dir));
       return c;
     };
-    const role = (h, extraSat = 0, dl = 0) => floor(h, t.sat + extraSat, sl + dl, dark ? 5.5 : 5);
+    const role = (h, extraSat = 0, dl = 0) => floor(h, t.sat + extraSat, sl + dl, dark ? 7 : 6.5);
     const mid = (t.bg + t.tx) / 2;
 
     return {
@@ -58,12 +58,12 @@
       selection: n(t.bg + 11 * dir),
       border: n(t.bg + 6 * dir),
       // Body text always outranks comments, even when the pick is very dim.
-      text: floor(nh, ns * 0.8, t.tx, dark ? 5.5 : 5),
-      textUi: floor(nh, ns * 0.8, t.tx - 5 * dir, 4.5),
+      text: floor(nh, ns * 0.8, t.tx, 10),
+      textUi: floor(nh, ns * 0.8, t.tx - 5 * dir, 7),
       muted: n(mid + 8 * dir),
       faint: n(t.bg + 24 * dir),
-      comment: floor(nh, ns, mid + 10 * dir, 4.5),
-      punct: floor(nh, ns, t.tx - 14 * dir, 3.5),
+      comment: floor(nh, ns, mid + 10 * dir, 5.5),
+      punct: floor(nh, ns, t.tx - 14 * dir, 5),
       keyword: role(HUES.keyword, 10),
       string: role(HUES.string, 5),
       func: role(HUES.func),
