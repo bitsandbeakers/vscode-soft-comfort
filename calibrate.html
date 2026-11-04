@@ -83,10 +83,16 @@
         <li>Names and numbers stay hidden, and the order is random each time.</li>
         <li><b>Judge by reading, not by first glance.</b> Read a full line or two in each. Soft, low-contrast text looks calm for a second and then tires you; that's what went wrong with 1.2.0.</li>
         <li><b>No difference</b> is a real answer. It records which settings don't matter to you, and those stay at the research-backed defaults.</li>
-        <li>Four parts, about 10 minutes: the theme, its colours, writing text, then code. <kbd>Backspace</kbd> undoes.</li>
+        <li>Six parts, about 15 minutes: the theme, its colours, writing text, code, highlights and cursor, then spacing and the Markdown preview. <kbd>Backspace</kbd> undoes.</li>
       </ul>
     </details>
-    <div class="row"><button class="b primary" id="go" type="button">Start the test</button></div>
+    <div class="row"><button class="b primary" id="go" type="button">Start the full test</button></div>
+    <details id="partial">
+      <summary>Already done parts 1–4? Run only the new parts</summary>
+      <p class="muted">Parts 5–6 (highlights, cursor, letter spacing, Markdown preview) start from your current settings. This box is filled from the repo's latest calibration; paste a different SC2 line to start from that instead.</p>
+      <input id="startcode" type="text" spellcheck="false" style="font:500 .9rem ui-monospace, monospace;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%">
+      <div class="row"><button class="b primary" id="gonew" type="button">Run parts 5–6 only</button><span class="muted" id="starterr"></span></div>
+    </details>
   </section>
 
   <!-- Test screen -->
@@ -156,17 +162,19 @@
 const SC = window.SoftComfort;
 
 // Starting point = research defaults for writing, 1.2.1 for the rest.
-const START = {
+const START = SC && SC.complete({
   base: 'soft', font: 'Fira Code', weight: 500, size: 14, lineHeight: 1.6, warmth: 100,
   prose: { font: 'Atkinson Hyperlegible Next', size: 18, lineHeight: 1.5, width: 80 },
   light: { bg: 93, tx: 22, sat: 60 }, dark: { bg: 17, tx: 82, sat: 45 },
-};
+});
 
 // kind 'pick': king of the hill; the current value defends each round.
 // kind 'stair': adaptive staircase. Current vs a neighbour; if the neighbour
 // wins keep walking that way, if current holds turn round and halve the step.
 // "No difference" ends the test there.
-const PARTS = ['Part 1 of 4 · Theme', 'Part 2 of 4 · Colours', 'Part 3 of 4 · Writing', 'Part 4 of 4 · Code'];
+const PARTS = ['Theme', 'Colours', 'Writing', 'Code', 'Highlights and cursor', 'Spacing and preview']
+  .map((name, i, all) => `Part ${i + 1} of ${all.length} · ${name}`);
+const NEW_PART = 4;   // first part added after the first full run
 const TESTS = [
   { id: 'th', part: 0, kind: 'pick', sample: 'both', q: 'Which could you read and write in all day?',
     hint: 'Read a paragraph and the bullets, then glance at the code. Overall comfort, not prettiness.',
@@ -199,6 +207,34 @@ const TESTS = [
     path: ['size'], lo: 11, hi: 22, step: 2, round: 1 },
   { id: 'clh', part: 3, kind: 'stair', sample: 'code', q: 'Which code line spacing is calmer?',
     path: ['lineHeight'], lo: 1.2, hi: 2.0, step: 0.3, round: 0.05 },
+  { id: 'hs', part: 4, kind: 'stair', sample: 'both', q: 'Which selection is easy to see without glaring?',
+    hint: 'Selected: "two days ahead of plan" in the paragraph, and o.qty > 0 in the code.', path: ['hl', 'sel'], lo: 3, hi: 30, step: 8, round: 1 },
+  { id: 'ht', part: 4, kind: 'pick', sample: 'both', q: 'Which selection colour works best?',
+    hint: 'Grey, blue, amber or green behind the selected text.', options: () => Object.keys(SC.TINTS),
+    get: c => c.hl.tint, apply: (c, v) => { c.hl.tint = v; } },
+  { id: 'cl', part: 4, kind: 'stair', sample: 'code', q: 'Which current-line highlight helps you keep your place?',
+    hint: 'The line with fetch( is the current line. It only needs to be findable.', path: ['hl', 'line'], lo: 0, hi: 10, step: 3, round: 0.5 },
+  { id: 'hf', part: 4, kind: 'stair', sample: 'code', q: 'Which search highlight is easier to spot?',
+    hint: 'Every "res" is a search hit; the first one is the current hit.', path: ['hl', 'find'], lo: 10, hi: 95, step: 25, round: 5 },
+  { id: 'cst', part: 4, kind: 'pick', sample: 'both', q: 'Which cursor is easiest to find at a glance?',
+    hint: 'It sits after "Tuesday," in the text and before ( after fetch in the code.', options: () => ['line', 'block', 'underline'],
+    get: c => c.hl.cst, apply: (c, v) => { c.hl.cst = v; } },
+  { id: 'cw', part: 4, kind: 'stair', sample: 'both', q: 'Which cursor thickness is easiest to find?',
+    path: ['hl', 'cw'], lo: 1, hi: 5, step: 2, round: 1, skip: c => c.hl.cst === 'block' },
+  { id: 'cc', part: 4, kind: 'pick', sample: 'both', q: 'Which cursor colour is easier to find?',
+    options: () => ['a', 't'], get: c => c.hl.cc, apply: (c, v) => { c.hl.cc = v; } },
+  { id: 'ls', part: 5, kind: 'stair', sample: 'code', q: 'Which letter spacing makes code easier to read?',
+    hint: 'Look at long names like retention_days and loadOrders.', path: ['ls'], lo: 0, hi: 1.5, step: 0.5, round: 0.1 },
+  { id: 'pls', part: 5, kind: 'stair', sample: 'prose', q: 'Which letter spacing makes paragraphs easier to read?',
+    path: ['prose', 'ls'], lo: 0, hi: 1.5, step: 0.5, round: 0.1 },
+  { id: 'mf', part: 5, kind: 'pick', sample: 'preview', q: 'Markdown preview: which font reads best?',
+    hint: 'This is the rendered reading view (Ctrl+Shift+V in VS Code), not the editor.',
+    options: c => uniq([c.prose.font, 'Atkinson Hyperlegible Next', 'Inter', 'IBM Plex Sans', 'Literata']),
+    get: c => c.md.font, apply: (c, v) => { c.md.font = v; } },
+  { id: 'ms', part: 5, kind: 'stair', sample: 'preview', q: 'Markdown preview: which size reads without leaning in?',
+    path: ['md', 'size'], lo: 13, hi: 26, step: 3, round: 1 },
+  { id: 'mlh', part: 5, kind: 'stair', sample: 'preview', q: 'Markdown preview: which line spacing is easier to follow?',
+    path: ['md', 'lineHeight'], lo: 1.2, hi: 2.3, step: 0.3, round: 0.05 },
 ];
 const MAX_ROUNDS = 7;
 
@@ -220,6 +256,7 @@ const fresh = () => ({ cal: clone(START), ti: 0, sub: null, nd: [], answers: 0, 
 function beginTest() {
   const t = TESTS[st.ti];
   st.answers = 0; st.ndAnswers = 0;
+  if (t.skip && t.skip(st.cal)) return endTest();
   if (t.kind === 'pick') {
     const cur = t.get(st.cal);
     const rest = t.options(st.cal).filter(o => o !== cur).sort(() => Math.random() - 0.5);
@@ -303,6 +340,10 @@ function finish() {
     ['Writing', `${c.prose.font}, ${c.prose.size}px, line height ${c.prose.lineHeight}, ${c.prose.width} characters per line`],
     ['Code', `${c.font}, ${c.size}px, line height ${c.lineHeight}`],
     ['Weight', String(c.weight)],
+    ['Selection', `strength ${c.hl.sel}, ${{ g: 'grey', b: 'blue', y: 'amber', n: 'green' }[c.hl.tint]}`],
+    ['Cursor', `${c.hl.cst}, ${c.hl.cw}px, ${c.hl.cc === 't' ? 'text colour' : 'accent colour'}`],
+    ['Letter spacing', `code ${c.ls}px, writing ${c.prose.ls}px`],
+    ['Markdown preview', `${c.md.font}, ${c.md.size}px, line height ${c.md.lineHeight}`],
     ['Made no difference', st.nd.length ? st.nd.map(id => TESTS.find(t => t.id === id).q).join(' · ') : 'nothing'],
   ];
   $('sum').innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join('');
@@ -311,7 +352,35 @@ function finish() {
 // ---------- samples ----------
 const span = (c, t, extra = '') => `<span style="color:${c};${extra}">${esc(t)}</span>`;
 
-function proseHTML(p) {
+const selHTML = (p, html) => `<span style="background:${p.selection}b0">${html}</span>`;
+
+// Cursor drawn the way VS Code draws each style; `ch` is the character under it.
+function cursorHTML(p, c, ch, color) {
+  const h = c.hl;
+  if (h.cst === 'block') return `<span style="background:${p.cursor};color:${p.bg}">${esc(ch)}</span>`;
+  if (h.cst === 'underline') return `<span style="color:${color};box-shadow:inset 0 -${h.cw}px 0 ${p.cursor}">${esc(ch)}</span>`;
+  return `<span style="display:inline-block;width:0;height:1.2em;vertical-align:-0.25em;border-left:${h.cw}px solid ${p.cursor};margin-right:-${h.cw}px"></span>` + span(color, ch);
+}
+
+function previewHTML(p, c) {
+  const code = t => `<code style="font-family:'${c.font}', ui-monospace, monospace;font-size:.88em;padding:1px 4px;border-radius:4px;background:${p.selection}55">${esc(t)}</code>`;
+  const link = t => `<a style="color:${p.type};text-decoration:none">${esc(t)}</a>`;
+  const P = 'margin:0 0 .9em';
+  return `
+    <h1 style="font-size:1.9em;font-weight:600;line-height:1.25;margin:0 0 .6em;padding-bottom:.3em;border-bottom:1px solid ${p.border}">Project update: week 45</h1>
+    <p style="${P}">The <strong>migration</strong> finished on Tuesday, two days ahead of plan. Most of what is left is <em>writing</em>: the runbook, the rollback guide, and a short note for whoever is on call next week. None of it is hard, but all of it will be read by tired people at odd hours, so it has to be clear the first time.</p>
+    <h2 style="font-size:1.4em;font-weight:600;line-height:1.3;margin:1.1em 0 .5em">Next steps</h2>
+    <ul style="${P};padding-left:1.6em">
+      <li>Confirm ${code('retention_days')} with the data team before Friday</li>
+      <li>Draft the customer email and keep it under 150 words, because nobody reads the second screen</li>
+      <li>Book thirty minutes with ${link('Priya')} to walk through the rollback
+        <ul style="padding-left:1.6em;margin:0"><li>Bring the timing numbers from staging, including the slow 0.3% of requests</li><li>Note which steps are safe to repeat and which are not</li></ul></li>
+    </ul>
+    <blockquote style="${P};padding:0 1em;border-left:4px solid ${p.border};color:${p.muted}">Ship the boring version first, then make it nice.</blockquote>
+    <ol style="margin:0;padding-left:1.6em"><li>Read it out loud once.</li><li>Cut every sentence that does not earn its place.</li><li>Ask one person who was not in the room to follow it cold.</li></ol>`;
+}
+
+function proseHTML(p, c) {
   const B = 'font-weight:700', I = 'font-style:italic';
   // Paint Markdown the way the theme colours it in VS Code: **bold**, *italic*, `code`, [link](url)
   const md = s => s
@@ -331,7 +400,8 @@ function proseHTML(p) {
   return [
     h(1, 'Project update: week 45'),
     '',
-    md('The **migration** finished on Tuesday, two days ahead of plan. Most of what is left is *writing*: the runbook, the rollback guide, and a short note for whoever is on call next week. None of it is hard, but all of it will be read by tired people at odd hours, so it has to be clear the first time.'),
+    md('The **migration** finished on Tuesday,') + cursorHTML(p, c, ' ', p.text) + selHTML(p, 'two days ahead of plan') +
+      md('. Most of what is left is *writing*: the runbook, the rollback guide, and a short note for whoever is on call next week. None of it is hard, but all of it will be read by tired people at odd hours, so it has to be clear the first time.'),
     '',
     h(2, 'Next steps'),
     li('-', 'Confirm `retention_days` with the data team before Friday'),
@@ -348,30 +418,35 @@ function proseHTML(p) {
   ].join('\n');
 }
 
-function codeHTML(p) {
+function codeHTML(p, c) {
   const k = t => span(p.keyword, t), f = t => span(p.func, t), s = t => span(p.string, t),
         n = t => span(p.number, t), y = t => span(p.type, t), a = t => span(p.param, t),
         cm = t => span(p.comment, t, 'font-style:italic'), u = t => span(p.punct, t);
-  return [
+  // Search hits for "res": the first is the current match.
+  const fm = cur => `<span style="background:${cur ? p.findMatch : p.findMatchHi}">res</span>`;
+  const lines = [
     cm('// 0O 1lI| {} [] => != === rn m  ~  -> <= >='),
     `${k('export async function')} ${f('loadOrders')}${u('(')}${a('userId')}${u(':')} ${y('string')}${u(',')} ${a('limit')} ${k('=')} ${n('25')}${u(')')} ${u('{')}`,
-    `  ${k('const')} res ${k('=')} ${k('await')} ${f('fetch')}${u('(')}${s('`/api/orders?u=${userId}`')}${u(')')}`,
-    `  ${k('if')} ${u('(')}${k('!')}res.ok${u(')')} ${k('throw new')} ${y('Error')}${u('(')}${s("'orders failed'")}${u(')')}`,
-    `  ${k('const')} ${u('{')} items${u(',')} total ${u('}')} ${k('=')} ${k('await')} res.${f('json')}${u('()')}`,
-    `  ${k('return')} items.${f('filter')}${u('(')}${a('o')} ${k('=>')} o.qty ${k('>')} ${n('0')}${u(')')}.${f('slice')}${u('(')}${n('0')}${u(',')} ${a('limit')}${u(')')}`,
+    `  ${k('const')} ${fm(true)} ${k('=')} ${k('await')} ${f('fetch')}${cursorHTML(p, c, '(', p.punct)}${s('`/api/orders?u=${userId}`')}${u(')')}`,
+    `  ${k('if')} ${u('(')}${k('!')}${fm()}.ok${u(')')} ${k('throw new')} ${y('Error')}${u('(')}${s("'orders failed'")}${u(')')}`,
+    `  ${k('const')} ${u('{')} retention_days${u(',')} items ${u('}')} ${k('=')} ${k('await')} ${fm()}.${f('json')}${u('()')}`,
+    `  ${k('return')} items.${f('filter')}${u('(')}${a('o')} ${k('=>')} ${selHTML(p, `o.qty ${k('>')} ${n('0')}`)}${u(')')}.${f('slice')}${u('(')}${n('0')}${u(',')} ${a('limit')}${u(')')}`,
     u('}'),
-  ].join('\n');
+  ];
+  // Line 3 is the current line; its highlight runs the full width like VS Code's.
+  return lines.map((l, i) => `<div style="white-space:pre;margin:0 -22px;padding:0 22px${i === 2 ? ';background:' + p.line : ''}">${l}</div>`).join('');
 }
 
 function optionEl(c, sample, idx) {
-  const p = SC.derive('light', c.light, c.warmth, c.base);
+  const p = SC.derive('light', c.light, c.warmth, c.base, c.hl);
   const el = document.createElement('div');
   el.className = 'opt'; el.tabIndex = 0;
   Object.assign(el.style, { background: p.bg, color: p.text, fontWeight: c.weight });
   const tag = `<div class="tag" style="color:${p.muted}">OPTION ${idx + 1}</div>`;
-  const proseBox = `<div class="prose" style="font-family:'${c.prose.font}', system-ui, sans-serif;font-size:${c.prose.size}px;line-height:${c.prose.lineHeight};max-width:${c.prose.width}ch">${proseHTML(p)}</div>`;
-  const codeBox = `<pre style="font-family:'${c.font}', ui-monospace, monospace;font-size:${c.size}px;line-height:${c.lineHeight}">${codeHTML(p)}</pre>`;
-  el.innerHTML = tag + (sample === 'code' ? codeBox : sample === 'prose' ? proseBox : proseBox + '<div class="gap"></div>' + codeBox);
+  const proseBox = `<div class="prose" style="font-family:'${c.prose.font}', system-ui, sans-serif;font-size:${c.prose.size}px;line-height:${c.prose.lineHeight};letter-spacing:${c.prose.ls}px;max-width:${c.prose.width}ch">${proseHTML(p, c)}</div>`;
+  const codeBox = `<div style="font-family:'${c.font}', ui-monospace, monospace;font-size:${c.size}px;line-height:${c.lineHeight};letter-spacing:${c.ls}px">${codeHTML(p, c)}</div>`;
+  const previewBox = `<div style="font-family:'${c.md.font}', system-ui, sans-serif;font-size:${c.md.size}px;line-height:${c.md.lineHeight};font-weight:400;max-width:880px">${previewHTML(p, c)}</div>`;
+  el.innerHTML = tag + ({ code: codeBox, prose: proseBox, preview: previewBox }[sample] || proseBox + '<div class="gap"></div>' + codeBox);
   return el;
 }
 
@@ -415,6 +490,17 @@ function flip(to) {
 
 // ---------- wiring ----------
 $('go').addEventListener('click', () => { st = fresh(); history = []; show('test'); beginTest(); });
+$('gonew').addEventListener('click', () => {
+  let cal;
+  try { cal = SC.decode($('startcode').value); } catch (e) { $('starterr').textContent = 'That code did not parse. Check it starts with SC2.'; return; }
+  st = fresh();
+  st.cal = cal; st.nd = cal.nd || []; delete cal.nd;
+  st.ti = TESTS.findIndex(t => t.part >= NEW_PART);
+  history = []; show('test'); beginTest();
+});
+// Prefill the "new parts only" box with the repo's current calibration.
+if (SC) fetch('build/calibration.json', { cache: 'no-store' }).then(r => r.json())
+  .then(j => { if (!$('startcode').value) $('startcode').value = SC.encode(SC.complete(j)); }).catch(() => {});
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => flip(Number(b.dataset.i))));
 $('c0').addEventListener('click', () => choose(0));
 $('c1').addEventListener('click', () => choose(1));

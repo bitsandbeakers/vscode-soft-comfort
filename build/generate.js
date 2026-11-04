@@ -5,23 +5,23 @@
 // Apply an eye-test result: node build/generate.js "SC2 b=soft f=fira ..."
 const fs = require('fs');
 const path = require('path');
-const { derive, contrast, decode } = require('./palette');
+const { derive, contrast, decode, complete } = require('./palette');
 
 const root = path.join(__dirname, '..');
 const calFile = path.join(__dirname, 'calibration.json');
 if (process.argv[2]) {
   fs.writeFileSync(calFile, JSON.stringify(decode(process.argv[2]), null, 2) + '\n');
 }
-const cal = JSON.parse(fs.readFileSync(calFile, 'utf8'));
+const cal = complete(JSON.parse(fs.readFileSync(calFile, 'utf8')));
 
 const palettes = {
   dark: {
     name: 'Soft Comfort Dark', type: 'dark', file: 'soft-comfort-dark-color-theme.json',
-    ...derive('dark', cal.dark, cal.warmth, cal.base),
+    ...derive('dark', cal.dark, cal.warmth, cal.base, cal.hl),
   },
   light: {
     name: 'Soft Comfort Light', type: 'light', file: 'soft-comfort-light-color-theme.json',
-    ...derive('light', cal.light, cal.warmth, cal.base),
+    ...derive('light', cal.light, cal.warmth, cal.base, cal.hl),
   },
 };
 
@@ -40,7 +40,7 @@ function theme(p) {
 
     'editor.background': p.bg,
     'editor.foreground': p.text,
-    'editorCursor.foreground': p.accent,
+    'editorCursor.foreground': p.cursor,
     'editor.lineHighlightBackground': p.line,
     'editor.lineHighlightBorder': '#00000000',
     'editor.selectionBackground': p.selection + 'b0',
@@ -48,8 +48,8 @@ function theme(p) {
     'editor.selectionHighlightBackground': p.selection + '60',
     'editor.wordHighlightBackground': p.selection + '55',
     'editor.wordHighlightStrongBackground': p.selection + '80',
-    'editor.findMatchBackground': p.warning + '55',
-    'editor.findMatchHighlightBackground': p.warning + '30',
+    'editor.findMatchBackground': p.findMatch,
+    'editor.findMatchHighlightBackground': p.findMatchHi,
     'editor.findRangeHighlightBackground': p.selection + '40',
     'editor.rangeHighlightBackground': p.selection + '40',
     'editorLineNumber.foreground': p.faint,
@@ -254,8 +254,14 @@ const settings = {
   'editor.fontWeight': String(cal.weight),
   'editor.fontSize': cal.size,
   'editor.lineHeight': cal.lineHeight,
-  'editor.letterSpacing': 0.3,
+  'editor.letterSpacing': cal.ls,
   'editor.cursorBlinking': 'solid',
+  'editor.cursorStyle': cal.hl.cst,
+  'editor.cursorWidth': cal.hl.cw,
+  // The rendered Markdown preview has its own type settings.
+  'markdown.preview.fontFamily': `'${cal.md.font}', 'Segoe UI', sans-serif`,
+  'markdown.preview.fontSize': cal.md.size,
+  'markdown.preview.lineHeight': cal.md.lineHeight,
   'editor.minimap.enabled': false,
 };
 // Writing gets its own font, size, spacing and wrap width (prose, not code).
@@ -264,7 +270,7 @@ const writing = {
   'editor.fontFamily': `'${prose.font}', '${cal.font}', 'Segoe UI', sans-serif`,
   'editor.fontSize': prose.size,
   'editor.lineHeight': prose.lineHeight,
-  'editor.letterSpacing': 0,
+  'editor.letterSpacing': prose.ls,
   'editor.wordWrap': 'wordWrapColumn',
   'editor.wordWrapColumn': prose.width,
   'editor.wrappingIndent': 'indent',

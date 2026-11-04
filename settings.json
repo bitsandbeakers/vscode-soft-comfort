@@ -8,6 +8,11 @@
   "editor.lineHeight": 1.6,
   "editor.letterSpacing": 0.3,
   "editor.cursorBlinking": "solid",
+  "editor.cursorStyle": "line",
+  "editor.cursorWidth": 2,
+  "markdown.preview.fontFamily": "'IBM Plex Sans', 'Segoe UI', sans-serif",
+  "markdown.preview.fontSize": 15,
+  "markdown.preview.lineHeight": 1.75,
   "editor.minimap.enabled": false,
   "[markdown]": {
     "editor.fontFamily": "'IBM Plex Sans', 'JetBrains Mono', 'Segoe UI', sans-serif",

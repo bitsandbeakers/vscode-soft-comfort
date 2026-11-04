@@ -63,10 +63,18 @@
     return (x + 0.05) / (y + 0.05);
   }
 
+  // Highlights and cursor: selection strength (lightness step from the
+  // background), selection tint, current-line step, find-match opacity (%),
+  // cursor width (px), style, and colour (a = accent, t = text).
+  const HL = { sel: 11, tint: 'g', line: 2.5, find: 33, cw: 2, cst: 'line', cc: 'a' };
+  const TINTS = { g: null, b: 212, y: 45, n: 130 };
+  const alpha = pct => Math.round(Math.max(0, Math.min(100, pct)) * 2.55).toString(16).padStart(2, '0');
+
   // variant: 'dark' | 'light'
   // t: { bg, tx, sat } lightness of background, lightness of text, syntax saturation
   // warmth: 0 (cool blue-grey) .. 100 (warm paper/charcoal)
-  function derive(variant, t, warmth, base = 'soft') {
+  function derive(variant, t, warmth, base = 'soft', hl = {}) {
+    const h = { ...HL, ...hl };
     const dark = variant === 'dark';
     const R = BASES[base].roles;
     // Neutral greys: blue-grey below 50, pure grey at 50, amber-grey above.
@@ -87,12 +95,13 @@
     const role = (h, extraSat = 0, dl = 0) => floor(h, t.sat + extraSat, sl + dl, dark ? 7 : 6.5);
     const mid = (t.bg + t.tx) / 2;
 
-    return {
+    const tint = TINTS[h.tint];
+    const p = {
       bg: bgHex,
       bgDeep: n(t.bg - 2.5),
       bgRaised: n(t.bg + (dark ? 3 : 2)),
-      line: n(t.bg + 2.5 * dir),
-      selection: n(t.bg + 11 * dir),
+      line: n(t.bg + h.line * dir),
+      selection: tint == null ? n(t.bg + h.sel * dir) : hsl(tint, dark ? 30 : 55, t.bg + h.sel * dir),
       border: n(t.bg + 6 * dir),
       // Body text always outranks comments, even when the pick is very dim.
       text: floor(nh, ns * 0.8, t.tx, 7),
@@ -117,6 +126,10 @@
       button: n(dark ? t.bg + 18 : t.tx + 18),
       buttonText: n(dark ? 92 : 97),
     };
+    p.findMatch = p.warning + alpha(h.find);
+    p.findMatchHi = p.warning + alpha(h.find * 0.55);
+    p.cursor = h.cc === 't' ? p.text : p.accent;
+    return p;
   }
 
   // Short result code from the eye test, e.g.
@@ -128,10 +141,23 @@
   const MONO = ['fira', 'jet', 'plex', 'ahm', 'scp'];
   const fontKey = name => Object.keys(FONTS).find(k => FONTS[k] === name);
 
+  // Fill in anything an older code didn't carry, so every field exists.
+  function complete(c) {
+    c.hl = { ...HL, ...(c.hl || {}) };
+    if (c.ls == null) c.ls = 0.3;
+    if (c.prose.ls == null) c.prose.ls = 0;
+    c.md = { font: c.prose.font, size: c.prose.size, lineHeight: c.prose.lineHeight, ...(c.md || {}) };
+    return c;
+  }
+
   function encode(c) {
+    complete(c);
     const tri = t => [t.bg, t.tx, t.sat].map(v => Math.round(v)).join(',');
+    const h = c.hl;
     return `SC2 b=${c.base} f=${fontKey(c.font)} w=${c.weight} s=${c.size} lh=${c.lineHeight} wm=${Math.round(c.warmth)} ` +
-      `pf=${fontKey(c.prose.font)} ps=${c.prose.size} plh=${c.prose.lineHeight} pw=${c.prose.width} L=${tri(c.light)} D=${tri(c.dark)}`;
+      `pf=${fontKey(c.prose.font)} ps=${c.prose.size} plh=${c.prose.lineHeight} pw=${c.prose.width} L=${tri(c.light)} D=${tri(c.dark)} ` +
+      `hs=${h.sel} ht=${h.tint} cl=${h.line} hf=${h.find} cw=${h.cw} cst=${h.cst} cc=${h.cc} ls=${c.ls} pls=${c.prose.ls} ` +
+      `mf=${fontKey(c.md.font)} ms=${c.md.size} mlh=${c.md.lineHeight}`;
   }
 
   function decode(code) {
@@ -140,18 +166,26 @@
     const tri = s => { const [bg, tx, sat] = s.split(',').map(Number); return { bg, tx, sat }; };
     if (!FONTS[kv.f] || !kv.l || !kv.d) throw new Error(`Not a Soft Comfort code: ${code}`);
     const base = BASES[kv.b] ? kv.b : 'soft';
-    return {
+    const num = (v, d) => (v == null || v === '' || isNaN(Number(v)) ? d : Number(v));
+    const hl = {
+      sel: num(kv.hs, HL.sel), tint: kv.ht in TINTS ? kv.ht : HL.tint, line: num(kv.cl, HL.line),
+      find: num(kv.hf, HL.find), cw: num(kv.cw, HL.cw),
+      cst: ['line', 'block', 'underline'].includes(kv.cst) ? kv.cst : HL.cst, cc: kv.cc === 't' ? 't' : 'a',
+    };
+    return complete({
       base, font: FONTS[kv.f], weight: Number(kv.w), size: Number(kv.s),
       lineHeight: Number(kv.lh), warmth: Number(kv.wm),
       prose: {
         font: FONTS[kv.pf] || FONTS[kv.f], size: Number(kv.ps) || Number(kv.s) + 2,
-        lineHeight: Number(kv.plh) || 1.8, width: Number(kv.pw) || 80,
+        lineHeight: Number(kv.plh) || 1.8, width: Number(kv.pw) || 80, ls: num(kv.pls, 0),
       },
-      light: tri(kv.l), dark: tri(kv.d),
-    };
+      light: tri(kv.l), dark: tri(kv.d), hl, ls: num(kv.ls, 0.3),
+      md: FONTS[kv.mf] ? { font: FONTS[kv.mf], size: num(kv.ms, 16), lineHeight: num(kv.mlh, 1.6) } : undefined,
+      nd: kv.nd ? kv.nd.split('.') : [],
+    });
   }
 
-  const api = { HUES, BASES, FONTS, MONO, hsl, contrast, derive, encode, decode };
+  const api = { HUES, BASES, FONTS, MONO, HL, TINTS, hsl, contrast, derive, complete, encode, decode };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SoftComfort = api;
 })(this);
