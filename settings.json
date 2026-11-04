@@ -3,10 +3,48 @@
   "workbench.preferredLightColorTheme": "Soft Comfort Light",
   "workbench.preferredDarkColorTheme": "Soft Comfort Dark",
   "editor.fontFamily": "'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
-  "editor.fontWeight": "550",
+  "editor.fontWeight": "500",
   "editor.fontSize": 14,
   "editor.lineHeight": 1.6,
   "editor.letterSpacing": 0.3,
   "editor.cursorBlinking": "solid",
-  "editor.minimap.enabled": false
+  "editor.minimap.enabled": false,
+  "[markdown]": {
+    "editor.fontFamily": "'Atkinson Hyperlegible Next', 'Fira Code', 'Segoe UI', sans-serif",
+    "editor.fontSize": 18,
+    "editor.lineHeight": 1.5,
+    "editor.letterSpacing": 0,
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 80,
+    "editor.wrappingIndent": "indent",
+    "editor.lineNumbers": "off",
+    "editor.glyphMargin": false,
+    "editor.folding": false,
+    "editor.rulers": [],
+    "editor.renderWhitespace": "none",
+    "editor.quickSuggestions": {
+      "other": false,
+      "comments": false,
+      "strings": false
+    }
+  },
+  "[plaintext]": {
+    "editor.fontFamily": "'Atkinson Hyperlegible Next', 'Fira Code', 'Segoe UI', sans-serif",
+    "editor.fontSize": 18,
+    "editor.lineHeight": 1.5,
+    "editor.letterSpacing": 0,
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 80,
+    "editor.wrappingIndent": "indent",
+    "editor.lineNumbers": "off",
+    "editor.glyphMargin": false,
+    "editor.folding": false,
+    "editor.rulers": [],
+    "editor.renderWhitespace": "none",
+    "editor.quickSuggestions": {
+      "other": false,
+      "comments": false,
+      "strings": false
+    }
+  }
 }

@@ -2,7 +2,7 @@
 // each syntax colour's contrast against its background so tuning stays honest.
 //
 // Run: node build/generate.js
-// Apply an eye-test result: node build/generate.js "SC1 f=fira w=500 ..."
+// Apply an eye-test result: node build/generate.js "SC2 b=soft f=fira ..."
 const fs = require('fs');
 const path = require('path');
 const { derive, contrast, decode } = require('./palette');
@@ -17,11 +17,11 @@ const cal = JSON.parse(fs.readFileSync(calFile, 'utf8'));
 const palettes = {
   dark: {
     name: 'Soft Comfort Dark', type: 'dark', file: 'soft-comfort-dark-color-theme.json',
-    ...derive('dark', cal.dark, cal.warmth),
+    ...derive('dark', cal.dark, cal.warmth, cal.base),
   },
   light: {
     name: 'Soft Comfort Light', type: 'light', file: 'soft-comfort-light-color-theme.json',
-    ...derive('light', cal.light, cal.warmth),
+    ...derive('light', cal.light, cal.warmth, cal.base),
   },
 };
 
@@ -258,6 +258,25 @@ const settings = {
   'editor.cursorBlinking': 'solid',
   'editor.minimap.enabled': false,
 };
+// Writing gets its own font, size, spacing and wrap width (prose, not code).
+const prose = cal.prose;
+const writing = {
+  'editor.fontFamily': `'${prose.font}', '${cal.font}', 'Segoe UI', sans-serif`,
+  'editor.fontSize': prose.size,
+  'editor.lineHeight': prose.lineHeight,
+  'editor.letterSpacing': 0,
+  'editor.wordWrap': 'wordWrapColumn',
+  'editor.wordWrapColumn': prose.width,
+  'editor.wrappingIndent': 'indent',
+  'editor.lineNumbers': 'off',
+  'editor.glyphMargin': false,
+  'editor.folding': false,
+  'editor.rulers': [],
+  'editor.renderWhitespace': 'none',
+  'editor.quickSuggestions': { other: false, comments: false, strings: false },
+};
+settings['[markdown]'] = writing;
+settings['[plaintext]'] = writing;
 fs.writeFileSync(path.join(root, 'settings.json'), JSON.stringify(settings, null, 2) + '\n');
 
 for (const p of Object.values(palettes)) {

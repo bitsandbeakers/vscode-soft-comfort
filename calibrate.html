@@ -4,214 +4,443 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Soft Comfort Eye Test</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=JetBrains+Mono:wght@300..700&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300..700&display=swap">
+<!-- One link per family, so a font that fails to load can't take the others with it -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300..700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,300..700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:ital,wght@0,200..800;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,200..800;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300..700;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,400&display=swap">
 <script src="build/palette.js"></script>
 <style>
-  /* Eye-test layout: one question at a time, two blind options, a short result code at the end */
-  :root { --bg:#e9e8e5; --fg:#2f3033; --muted:#64666b; --line:#cfcdc8; --accent:#2d6a76; --chip:#f4f3f0; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#1f2023; --fg:#d3d4d6; --muted:#9a9ca1; --line:#3a3b40; --accent:#98d1dd; --chip:#2a2b2f; color-scheme: dark } }
+  :root { --bg:#e9e8e5; --fg:#26272a; --muted:#585a5f; --line:#cbc9c4; --accent:#2d6a76; --chip:#f6f5f2; --on:#ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1f2023; --fg:#dcdddf; --muted:#a3a5aa; --line:#3a3b40; --accent:#98d1dd; --chip:#2a2b2f; --on:#10262b; color-scheme: dark } }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, sans-serif; padding:24px max(16px, 4vw) 48px; }
-  main { max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
-  h1 { margin:0; font-size:1.35rem; font-weight:600; }
-  .q { font-size:1.1rem; font-weight:600; }
-  .muted { color:var(--muted); font-size:.92rem; margin:0; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, sans-serif; padding:24px max(16px, 3vw) 64px; }
+  main { max-width:1280px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
+  h1 { margin:0; font-size:1.4rem; font-weight:650; }
+  h2 { margin:0; font-size:1.05rem; }
+  p { margin:0; }
+  a { color:var(--accent); }
+  .muted { color:var(--muted); font-size:.93rem; }
+  .card { background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; }
+  .card ul, .card ol { margin:0; padding-left:1.3em; }
+  .card li { margin:5px 0; }
+  label.chk { display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+  label.chk input { margin-top:5px; width:18px; height:18px; flex:none; }
+  details summary { cursor:pointer; font-weight:600; }
   .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; }
   .bar > div { height:100%; background:var(--accent); transition:width .2s; }
-  .pair { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap:14px; }
-  .opt { all:unset; cursor:pointer; border-radius:12px; padding:14px 16px 16px; border:3px solid transparent; min-width:0; overflow-x:auto; display:block; }
-  .opt:hover, .opt:focus-visible { border-color:var(--accent); }
-  .opt .tag { font:600 .85rem system-ui, sans-serif; margin-bottom:8px; opacity:.75; }
+  .part { font-size:.85rem; font-weight:650; letter-spacing:.04em; text-transform:uppercase; color:var(--accent); }
+  .q { font-size:1.15rem; font-weight:650; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .spacer { flex:1; }
+  button.b { font:inherit; font-size:.95rem; padding:10px 18px; border-radius:999px; border:1px solid var(--line); background:var(--chip); color:var(--fg); cursor:pointer; }
+  button.b.primary { background:var(--accent); color:var(--on); border-color:var(--accent); font-weight:600; }
+  button.b:disabled { opacity:.4; cursor:not-allowed; }
+  button.b:focus-visible, .tab:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .tabs { display:flex; gap:6px; }
+  .tab { font:600 1rem system-ui, sans-serif; min-width:52px; height:40px; border-radius:10px; border:2px solid var(--line); background:var(--chip); color:var(--fg); cursor:pointer; }
+  .tab[aria-selected="true"] { border-color:var(--accent); background:var(--accent); color:var(--on); }
+  .tab.seen::after { content:" ✓"; font-size:.75rem; }
+  .stage { display:grid; gap:14px; }
+  .stage.split { grid-template-columns:repeat(auto-fit, minmax(min(100%, 520px), 1fr)); }
+  .opt { border-radius:12px; padding:18px 22px 22px; min-width:0; overflow-x:auto; min-height:440px; cursor:pointer; outline:none; }
+  .opt .tag { font:650 .8rem system-ui, sans-serif; margin-bottom:10px; letter-spacing:.05em; }
   .opt pre { margin:0; font:inherit; white-space:pre; }
-  .row { display:flex; flex-wrap:wrap; gap:8px; }
-  button.b { font:inherit; font-size:.92rem; padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--chip); color:var(--fg); cursor:pointer; }
-  button.b:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .code { font:500 1.05rem 'Fira Code', ui-monospace, monospace; background:var(--chip); border:1px solid var(--line); border-radius:10px; padding:14px; word-break:break-all; }
+  .opt .prose { white-space:pre-wrap; overflow-wrap:break-word; }
+  .opt .gap { height:20px; }
+  .code { font:500 1.02rem ui-monospace, Consolas, monospace; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px; word-break:break-all; user-select:all; }
+  table.sum { border-collapse:collapse; font-size:.93rem; }
+  table.sum td { padding:4px 14px 4px 0; vertical-align:top; }
+  table.sum td:first-child { color:var(--muted); white-space:nowrap; }
+  kbd { font:600 .8rem ui-monospace, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; background:var(--chip); }
+  .ev { font-size:.78rem; font-weight:650; padding:1px 7px; border-radius:999px; border:1px solid var(--line); white-space:nowrap; }
+  [hidden] { display:none !important; }
   @media (prefers-reduced-motion: reduce) { .bar > div { transition:none; } }
 </style>
 </head>
 <body>
 <main>
   <h1>Soft Comfort eye test</h1>
-  <p class="muted" id="intro">Like at the optician: two options, pick whichever is clearer and calmer to read. Names and numbers stay hidden. Sit at your normal distance in your usual lighting. About 3 minutes. Keys: 1, 2, or 0 for "can't tell".</p>
-  <div class="bar"><div id="prog" style="width:0"></div></div>
-  <div class="q" id="question"></div>
-  <p class="muted" id="hint"></p>
-  <div class="pair" id="pair"></div>
-  <div class="row" id="actions">
-    <button class="b" id="same" type="button">Can't tell / both fine</button>
-    <button class="b" id="back" type="button">Undo last</button>
-  </div>
-  <div id="done" hidden>
-    <p class="q">Done. Paste this one line back to Claude:</p>
+
+  <!-- Screen 0: setup -->
+  <section id="setup" class="card">
+    <h2>Before you start (2 minutes)</h2>
+    <p class="muted">The test is only as good as the conditions. Set these up exactly as you'll use VS Code.</p>
+    <label class="chk"><input type="checkbox"><span><b>Use the monitor you'll write on</b>, in your normal lighting, at your normal distance.</span></label>
+    <label class="chk"><input type="checkbox"><span><b>Match brightness to the room.</b> Hold a sheet of white paper next to the screen. A white area on screen should look like that paper, not like a lamp. Turn the monitor down until it does.</span></label>
+    <label class="chk"><input type="checkbox"><span><b>Browser zoom at 100%</b> (press <kbd>Ctrl</kbd>+<kbd>0</kbd>), so sizes match VS Code.</span></label>
+    <label class="chk"><input type="checkbox"><span><b>Night Light / f.lux as you normally run it</b> while working, on or off.</span></label>
+    <label class="chk"><input type="checkbox"><span><b>Glasses on</b> if you wear any for the screen.</span></label>
+    <details>
+      <summary>How the test works</summary>
+      <ul>
+        <li>Like at the optician: you see option <b>1</b>, then option <b>2</b>, in the same spot. Flip between them as often as you like with <kbd>Space</kbd> or the arrow keys, then choose.</li>
+        <li>Names and numbers stay hidden, and the order is random each time.</li>
+        <li><b>Judge by reading, not by first glance.</b> Read a full line or two in each. Soft, low-contrast text looks calm for a second and then tires you; that's what went wrong with 1.2.0.</li>
+        <li><b>No difference</b> is a real answer. It records which settings don't matter to you, and those stay at the research-backed defaults.</li>
+        <li>Four parts, about 10 minutes: the theme, its colours, writing text, then code. <kbd>Backspace</kbd> undoes.</li>
+      </ul>
+    </details>
+    <div class="row"><button class="b primary" id="go" type="button">Start the test</button></div>
+  </section>
+
+  <!-- Test screen -->
+  <section id="test" hidden>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="bar"><div id="prog" style="width:0"></div></div>
+      <div class="part" id="part"></div>
+      <div class="q" id="question"></div>
+      <p class="muted" id="hint"></p>
+      <div class="row">
+        <div class="tabs" role="tablist" id="tabs">
+          <button class="tab" role="tab" type="button" data-i="0">1</button>
+          <button class="tab" role="tab" type="button" data-i="1">2</button>
+        </div>
+        <span class="muted" id="fliphint"><kbd>Space</kbd> or click the text to flip</span>
+        <span class="spacer"></span>
+        <label class="chk muted" style="align-items:center"><input type="checkbox" id="split" style="margin:0"> Side by side</label>
+      </div>
+      <div class="stage" id="stage"></div>
+      <div class="row">
+        <button class="b primary" id="c0" type="button">1 is better <kbd>1</kbd></button>
+        <button class="b primary" id="c1" type="button">2 is better <kbd>2</kbd></button>
+        <button class="b" id="nd" type="button">No difference <kbd>0</kbd></button>
+        <span class="spacer"></span>
+        <button class="b" id="undo" type="button">Undo</button>
+      </div>
+      <p class="muted" id="seenhint">Look at both before choosing.</p>
+    </div>
+  </section>
+
+  <!-- Result screen -->
+  <section id="done" class="card" hidden>
+    <h2>Done. Paste this one line back to Claude:</h2>
     <div class="code" id="code"></div>
-    <div class="row" style="margin-top:10px">
-      <button class="b" id="copy" type="button">Copy</button>
+    <div class="row">
+      <button class="b primary" id="copy" type="button">Copy</button>
       <button class="b" id="restart" type="button">Start over</button>
     </div>
-  </div>
+    <details>
+      <summary>What you picked</summary>
+      <table class="sum" id="sum"></table>
+    </details>
+  </section>
+
+  <details class="card" id="why">
+    <summary>Why these options (the research)</summary>
+    <ul>
+      <li><span class="ev">strong</span> <b>Dark text on a light background</b> beat light-on-dark for acuity and proofreading, mostly because pupils get smaller, which also shrinks the halos LASIK and astigmatism cause. Biggest win for small text.
+        <a href="https://doi.org/10.1080/00140139.2013.790485">Piepenbrock 2013</a>, <a href="https://doi.org/10.1080/00140139.2014.948496">2014</a>.</li>
+      <li><span class="ev">strong</span> <b>Contrast:</b> reading speed stays flat across a wide range and only collapses when text gets faint. So 10–15:1 is fine; below about 7:1 you pay. The floor here is 7:1.
+        <a href="https://legge.dl8.umn.edu/sites/legge.psych.umn.edu/files/2020-08/psychophysics_of_reading-v._the_role_of_contrast_in_normal_vision_legge_rubin_luebker_1987.pdf">Legge 1987</a>.</li>
+      <li><span class="ev">mixed</span> <b>Warm backgrounds</b> (cream, peach) read slightly better than cool ones in one large study. That's why sepia and warm paper are in the theme round.
+        <a href="https://www.changedyslexia.org/publications/pdfs/2017-ASSETS-Good%20Background%20Colors.pdf">Rello &amp; Bigham 2017</a>.</li>
+      <li><span class="ev">mixed</span> <b>Line length:</b> people read ~100 characters fastest but prefer 45–72 and understand best around 55. Start: 80.
+        <a href="https://stu.westga.edu/~ssynan1/literacy/Dyson.pdf">Dyson 2004</a>.</li>
+      <li><span class="ev">standard</span> <b>Line spacing 1.5×</b> is the accessibility baseline.
+        <a href="https://www.w3.org/WAI/WCAG21/Understanding/text-spacing">WCAG 1.4.12</a>.</li>
+      <li><span class="ev">strong</span> <b>Size:</b> at desk distance 16px is right at the floor for fluent reading; 18–20px leaves margin. Start for writing: 18px.
+        <a href="https://legge.dl8.umn.edu/sites/legge.psych.umn.edu/files/2020-08/Legge%20Bigelow%202011%20Does%20size%20matter%20for%20reading%3F%20A%20review%20of%20findings%20from%20vision%20science%20and%20typography.pdf">Legge &amp; Bigelow 2011</a>.</li>
+      <li><span class="ev">strong</span> <b>Serif vs sans makes no difference; monospace is slightly slower for prose;</b> and the best font differs a lot between people (up to 35% speed). That's why fonts are tested, not prescribed.
+        <a href="https://readabilitymatters.org/articles/2022/03/29">Wallace 2022</a>.</li>
+      <li><span class="ev">no evidence</span> <b>Named themes</b> (iA Writer, Kindle sepia, GitHub, Solarized) have never been tested. They're in the theme round as starting points only.</li>
+    </ul>
+  </details>
 </main>
 <script>
 const SC = window.SoftComfort;
 
-// Starting point = the current build/calibration.json values.
-const start = { font: 'Fira Code', weight: 500, size: 15, lineHeight: 1.6, warmth: 40,
-  light: { bg: 93, tx: 25, sat: 45 }, dark: { bg: 18, tx: 79, sat: 50 } };
+// Starting point = research defaults for writing, 1.2.1 for the rest.
+const START = {
+  base: 'soft', font: 'Fira Code', weight: 500, size: 14, lineHeight: 1.6, warmth: 100,
+  prose: { font: 'Atkinson Hyperlegible Next', size: 18, lineHeight: 1.5, width: 80 },
+  light: { bg: 93, tx: 22, sat: 60 }, dark: { bg: 17, tx: 82, sat: 45 },
+};
 
-// Each numeric test is a staircase: compare current-step vs current+step,
-// keep the winner, halve the step. Font is a knockout between four faces.
+// kind 'pick': king of the hill; the current value defends each round.
+// kind 'stair': adaptive staircase. Current vs a neighbour; if the neighbour
+// wins keep walking that way, if current holds turn round and halve the step.
+// "No difference" ends the test there.
+const PARTS = ['Part 1 of 4 · Theme', 'Part 2 of 4 · Colours', 'Part 3 of 4 · Writing', 'Part 4 of 4 · Code'];
 const TESTS = [
-  { id: 'font', q: 'Which text is sharper?', hint: 'Look at 0 O, 1 l I, and the brackets.', kind: 'font' },
-  { id: 'weight', q: 'Which stroke thickness is easier?', path: ['weight'], lo: 300, hi: 650, step: 100, round: 50 },
-  { id: 'size', q: 'Which size reads without effort?', path: ['size'], lo: 12, hi: 20, step: 2, round: 1 },
-  { id: 'lineHeight', q: 'Which line spacing is calmer?', path: ['lineHeight'], lo: 1.2, hi: 2.0, step: 0.2, round: 0.05 },
-  { id: 'warmth', q: 'Which feels gentler on your eyes?', hint: 'Cooler vs warmer greys.', path: ['warmth'], lo: 0, hi: 100, step: 30, round: 5, variant: 'light' },
-  { id: 'lbg', q: 'Light theme: which background is more comfortable?', path: ['light', 'bg'], lo: 84, hi: 98, step: 4, round: 1, variant: 'light' },
-  { id: 'ltx', q: 'Light theme: which text darkness is easier?', hint: 'Too dark glares; too light strains.', path: ['light', 'tx'], lo: 10, hi: 40, step: 8, round: 1, variant: 'light' },
-  { id: 'lsat', q: 'Light theme: which colour strength do you prefer?', path: ['light', 'sat'], lo: 10, hi: 75, step: 18, round: 1, variant: 'light' },
-  { id: 'dbg', q: 'Dark theme: which background is more comfortable?', hint: 'Best done in the lighting you use dark mode in.', path: ['dark', 'bg'], lo: 8, hi: 28, step: 5, round: 1, variant: 'dark' },
-  { id: 'dtx', q: 'Dark theme: which text brightness is easier?', hint: 'Watch for glow or halos around letters.', path: ['dark', 'tx'], lo: 60, hi: 92, step: 8, round: 1, variant: 'dark' },
-  { id: 'dsat', q: 'Dark theme: which colour strength do you prefer?', path: ['dark', 'sat'], lo: 10, hi: 75, step: 18, round: 1, variant: 'dark' },
+  { id: 'th', part: 0, kind: 'pick', sample: 'both', q: 'Which could you read and write in all day?',
+    hint: 'Read a paragraph and the bullets, then glance at the code. Overall comfort, not prettiness.',
+    options: () => Object.keys(SC.BASES), get: c => c.base,
+    apply: (c, v) => { const B = SC.BASES[v]; c.base = v; c.warmth = B.warmth; c.light = { ...B.light }; c.dark = { ...B.dark }; } },
+  { id: 'tx', part: 1, kind: 'stair', sample: 'prose', q: 'Which text can you read longer without effort?',
+    hint: 'Read a whole line. Too faint makes you strain; too harsh can shimmer.', path: ['light', 'tx'], lo: 4, hi: 34, step: 8, round: 1 },
+  { id: 'bg', part: 1, kind: 'stair', sample: 'prose', q: 'Which background is easier to look at?',
+    hint: 'Brighter is crisper, dimmer is gentler. Notice any glare.', path: ['light', 'bg'], lo: 84, hi: 100, step: 4, round: 1 },
+  { id: 'wm', part: 1, kind: 'stair', sample: 'prose', q: 'Which tint is more comfortable?',
+    hint: 'Cool grey vs warm paper.', path: ['warmth'], lo: 0, hi: 100, step: 30, round: 5 },
+  { id: 'sat', part: 1, kind: 'stair', sample: 'both', q: 'Which colour strength helps more?',
+    hint: 'Headings, bold, links, bullets and code. Do the colours guide you or distract you?', path: ['light', 'sat'], lo: 10, hi: 95, step: 25, round: 1 },
+  { id: 'pf', part: 2, kind: 'pick', sample: 'prose', q: 'Which font is easiest to read in paragraphs?',
+    hint: 'Read a full sentence in each.',
+    options: c => uniq(['Atkinson Hyperlegible Next', 'Inter', 'IBM Plex Sans', 'Literata', 'Atkinson Hyperlegible Mono', c.font]),
+    get: c => c.prose.font, apply: (c, v) => { c.prose.font = v; } },
+  { id: 'w', part: 2, kind: 'stair', sample: 'prose', q: 'Which stroke thickness is clearer?',
+    hint: 'Thin strokes can blur or halo; heavy strokes can smear.', path: ['weight'], lo: 300, hi: 700, step: 100, round: 50 },
+  { id: 'ps', part: 2, kind: 'stair', sample: 'prose', q: 'Which text size reads without leaning in?',
+    path: ['prose', 'size'], lo: 13, hi: 26, step: 3, round: 1 },
+  { id: 'plh', part: 2, kind: 'stair', sample: 'prose', q: 'Which line spacing makes it easier to keep your place?',
+    hint: 'Read to the end of a line and jump to the next.', path: ['prose', 'lineHeight'], lo: 1.2, hi: 2.3, step: 0.3, round: 0.05 },
+  { id: 'pw', part: 2, kind: 'stair', sample: 'prose', q: 'Which line length is more comfortable?',
+    hint: 'Long lines make the jump back to the start of the next line harder.', path: ['prose', 'width'], lo: 45, hi: 120, step: 20, round: 5 },
+  { id: 'cf', part: 3, kind: 'pick', sample: 'code', q: 'Which code font is sharper?',
+    hint: 'Check 0 O, 1 l I, and the brackets.', options: () => SC.MONO.map(k => SC.FONTS[k]),
+    get: c => c.font, apply: (c, v) => { c.font = v; } },
+  { id: 'cs', part: 3, kind: 'stair', sample: 'code', q: 'Which code size reads without effort?',
+    path: ['size'], lo: 11, hi: 22, step: 2, round: 1 },
+  { id: 'clh', part: 3, kind: 'stair', sample: 'code', q: 'Which code line spacing is calmer?',
+    path: ['lineHeight'], lo: 1.2, hi: 2.0, step: 0.3, round: 0.05 },
 ];
-const ROUNDS = 4;
-const FONT_LIST = ['Fira Code', 'JetBrains Mono', 'IBM Plex Mono', 'Source Code Pro'];
-
-let cal, ti, round, step, bracket, history, pair;
+const MAX_ROUNDS = 7;
 
 const $ = id => document.getElementById(id);
 const get = (o, p) => p.reduce((a, k) => a[k], o);
 const set = (o, p, v) => { p.slice(0, -1).reduce((a, k) => a[k], o)[p[p.length - 1]] = v; };
 const roundTo = (v, r) => Number((Math.round(v / r) * r).toFixed(2));
 const clone = o => JSON.parse(JSON.stringify(o));
-const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const uniq = a => [...new Set(a)];
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+                set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
-function reset() {
-  cal = clone(start); ti = 0; history = [];
-  beginTest();
-}
+// st holds everything undo needs to restore.
+let st, pair, view, seen, history = [];
+
+const fresh = () => ({ cal: clone(START), ti: 0, sub: null, nd: [], answers: 0, ndAnswers: 0 });
 
 function beginTest() {
-  const t = TESTS[ti];
-  round = 0;
-  if (t.kind === 'font') bracket = FONT_LIST.slice().sort(() => Math.random() - 0.5);
-  else step = t.step;
-  next();
+  const t = TESTS[st.ti];
+  st.answers = 0; st.ndAnswers = 0;
+  if (t.kind === 'pick') {
+    const cur = t.get(st.cal);
+    const rest = t.options(st.cal).filter(o => o !== cur).sort(() => Math.random() - 0.5);
+    st.sub = { champ: cur, queue: rest };
+  } else {
+    st.sub = { step: t.step, dir: Math.random() < 0.5 ? 1 : -1, rounds: 0 };
+  }
+  nextPair();
 }
 
-function next() {
-  const t = TESTS[ti];
-  if (t.kind === 'font') {
-    if (bracket.length === 1) { cal.font = bracket[0]; return advance(); }
-    pair = [{ font: bracket[0] }, { font: bracket[1] }];
+function nextPair() {
+  const t = TESTS[st.ti];
+  if (t.kind === 'pick') {
+    if (!st.sub.queue.length) return endTest();
+    pair = [st.sub.champ, st.sub.queue[0]];
   } else {
-    if (round >= ROUNDS) return advance();
-    const cur = get(cal, t.path);
-    const a = Math.max(t.lo, roundTo(cur - step, t.round));
-    const b = Math.min(t.hi, roundTo(cur + step, t.round));
-    if (a === b) return advance();
-    pair = [{ value: a }, { value: b }];
+    const s = st.sub;
+    if (s.rounds >= MAX_ROUNDS || s.step < t.round) return endTest();
+    const cur = get(st.cal, t.path);
+    let nb = roundTo(cur + s.dir * s.step, t.round);
+    if (nb < t.lo || nb > t.hi) { s.dir = -s.dir; nb = roundTo(cur + s.dir * s.step, t.round); }
+    if (nb < t.lo || nb > t.hi || nb === cur) return endTest();
+    pair = [cur, nb];
   }
-  if (Math.random() < 0.5) pair.reverse();   // blind: sides are random
+  if (Math.random() < 0.5) pair.reverse();   // blind: order is random
+  view = 0; seen = [true, false];
   render();
 }
 
-function choose(i) {
-  history.push({ cal: clone(cal), ti, round, step, bracket: bracket && bracket.slice() });
-  const t = TESTS[ti];
-  if (t.kind === 'font') {
-    // can't tell: keep the current pick (Fira Code) if it's in the pair
-    const loser = i >= 0 ? pair[1 - i].font : (pair[0].font === start.font ? pair[1] : pair[0]).font;
-    bracket = bracket.filter(f => f !== loser);
-    bracket.push(bracket.shift());           // winner goes to the back, next pair meets
-  } else {
-    if (i >= 0) set(cal, t.path, pair[i].value);
-    if (i < 0) { round = ROUNDS; return next(); }   // can't tell: keep current, move on
-    round++; step = Math.max(t.round, step / 2);
+function choose(i) {   // 0 or 1, or -1 for no difference
+  if (i >= 0 && !(seen[0] && seen[1]) && !$('split').checked) return;
+  history.push(clone(st));
+  const t = TESTS[st.ti];
+  st.answers++;
+  if (i < 0) st.ndAnswers++;
+  if (t.kind === 'pick') {
+    if (i >= 0) st.sub.champ = pair[i];
+    st.sub.queue.shift();
+    t.apply(st.cal, st.sub.champ);
+    return nextPair();
   }
-  next();
+  if (i < 0) return endTest();
+  const s = st.sub;
+  s.rounds++;
+  if (pair[i] === get(st.cal, t.path)) { s.dir = -s.dir; s.step /= 2; }   // current held: turn and refine
+  else set(st.cal, t.path, pair[i]);                                     // neighbour won: keep walking
+  nextPair();
 }
 
-function undo() {
-  const h = history.pop();
-  if (!h) return;
-  ({ ti, round, step } = h); cal = h.cal; bracket = h.bracket;
-  $('done').hidden = true; $('actions').hidden = false; $('pair').hidden = false;
-  next();
-}
-
-function advance() {
-  ti++;
-  if (ti >= TESTS.length) return finish();
+function endTest() {
+  const t = TESTS[st.ti];
+  // "Doesn't matter": every answer in a pick test was no-difference, or the
+  // very first staircase answer (the biggest step) was.
+  const indifferent = t.kind === 'pick' ? st.answers > 0 && st.ndAnswers === st.answers
+                                        : st.answers === 1 && st.ndAnswers === 1;
+  if (indifferent && !st.nd.includes(t.id)) st.nd.push(t.id);
+  st.ti++;
+  if (st.ti >= TESTS.length) return finish();
   beginTest();
 }
 
-function finish() {
-  $('prog').style.width = '100%';
-  $('question').textContent = ''; $('hint').textContent = '';
-  $('pair').hidden = true; $('actions').hidden = true;
-  $('code').textContent = SC.encode(cal);
-  $('done').hidden = false;
+function undo() {
+  if (!history.length) return;
+  st = history.pop();
+  show('test');
+  nextPair();
 }
 
-const SAMPLE = p => {
-  const s = (c, t) => `<span style="color:${c}">${esc(t)}</span>`;
+function show(which) {
+  for (const id of ['setup', 'test', 'done']) $(id).hidden = id !== which;
+}
+
+function finish() {
+  show('done');
+  $('prog').style.width = '100%';
+  $('code').textContent = SC.encode(st.cal) + (st.nd.length ? ` nd=${st.nd.join('.')}` : '');
+  const c = st.cal, p = SC.derive('light', c.light, c.warmth, c.base);
+  const rows = [
+    ['Theme', SC.BASES[c.base].label],
+    ['Text contrast', SC.contrast(p.text, p.bg).toFixed(1) + ':1'],
+    ['Writing', `${c.prose.font}, ${c.prose.size}px, line height ${c.prose.lineHeight}, ${c.prose.width} characters per line`],
+    ['Code', `${c.font}, ${c.size}px, line height ${c.lineHeight}`],
+    ['Weight', String(c.weight)],
+    ['Made no difference', st.nd.length ? st.nd.map(id => TESTS.find(t => t.id === id).q).join(' · ') : 'nothing'],
+  ];
+  $('sum').innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join('');
+}
+
+// ---------- samples ----------
+const span = (c, t, extra = '') => `<span style="color:${c};${extra}">${esc(t)}</span>`;
+
+function proseHTML(p) {
+  const B = 'font-weight:700', I = 'font-style:italic';
+  // Paint Markdown the way the theme colours it in VS Code: **bold**, *italic*, `code`, [link](url)
+  const md = s => s
+    .split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g)
+    .map(part => {
+      if (/^\*\*/.test(part)) return span(p.punct, '**') + span(p.param, part.slice(2, -2), B) + span(p.punct, '**');
+      if (/^\*/.test(part)) return span(p.punct, '*') + span(p.number, part.slice(1, -1), I) + span(p.punct, '*');
+      if (/^`/.test(part)) return span(p.string, part);
+      if (/^\[/.test(part)) {
+        const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        return span(p.punct, '[') + span(p.type, m[1]) + span(p.punct, '](') + span(p.type, m[2], 'text-decoration:underline') + span(p.punct, ')');
+      }
+      return esc(part);
+    }).join('');
+  const h = (lvl, t) => span(p.func, '#'.repeat(lvl) + ' ' + t, B);
+  const li = (mark, t, indent = '') => indent + span(p.keyword, mark) + ' ' + md(t);
   return [
-    s(p.comment, '// 0O 1lI| {} [] => != === rn m'),
-    `${s(p.keyword, 'export async function')} ${s(p.func, 'loadOrders')}(${s(p.param, 'userId')}: ${s(p.type, 'string')}) {`,
-    `  ${s(p.keyword, 'const')} res ${s(p.keyword, '=')} ${s(p.keyword, 'await')} ${s(p.func, 'fetch')}(${s(p.string, '`/api/orders?u=${userId}`')})`,
-    `  ${s(p.keyword, 'if')} (${s(p.keyword, '!')}res.ok) ${s(p.keyword, 'throw new')} ${s(p.type, 'Error')}(${s(p.string, "'orders failed'")})`,
-    `  ${s(p.keyword, 'const')} { items, total } ${s(p.keyword, '=')} ${s(p.keyword, 'await')} res.${s(p.func, 'json')}()`,
-    `  ${s(p.keyword, 'return')} items.${s(p.func, 'filter')}(${s(p.param, 'o')} ${s(p.keyword, '=>')} o.qty ${s(p.keyword, '>')} ${s(p.number, '0')}).${s(p.func, 'slice')}(${s(p.number, '0')}, ${s(p.number, '25')})`,
-    `}`,
+    h(1, 'Project update: week 45'),
+    '',
+    md('The **migration** finished on Tuesday, two days ahead of plan. Most of what is left is *writing*: the runbook, the rollback guide, and a short note for whoever is on call next week. None of it is hard, but all of it will be read by tired people at odd hours, so it has to be clear the first time.'),
+    '',
+    h(2, 'Next steps'),
+    li('-', 'Confirm `retention_days` with the data team before Friday'),
+    li('-', 'Draft the customer email and keep it under 150 words, because nobody reads the second screen'),
+    li('-', 'Book thirty minutes with [Priya](https://example.com/cal) to walk through the rollback'),
+    li('-', 'Bring the timing numbers from staging, including the slow 0.3% of requests', '  '),
+    li('-', 'Note which steps are safe to repeat and which are not', '  '),
+    '',
+    span(p.keyword, '> Ship the boring version first, then make it nice.'),
+    '',
+    li('1.', 'Read it out loud once.'),
+    li('2.', 'Cut every sentence that does not earn its place.'),
+    li('3.', 'Ask one person who was not in the room to follow it cold.'),
   ].join('\n');
-};
+}
+
+function codeHTML(p) {
+  const k = t => span(p.keyword, t), f = t => span(p.func, t), s = t => span(p.string, t),
+        n = t => span(p.number, t), y = t => span(p.type, t), a = t => span(p.param, t),
+        cm = t => span(p.comment, t, 'font-style:italic'), u = t => span(p.punct, t);
+  return [
+    cm('// 0O 1lI| {} [] => != === rn m  ~  -> <= >='),
+    `${k('export async function')} ${f('loadOrders')}${u('(')}${a('userId')}${u(':')} ${y('string')}${u(',')} ${a('limit')} ${k('=')} ${n('25')}${u(')')} ${u('{')}`,
+    `  ${k('const')} res ${k('=')} ${k('await')} ${f('fetch')}${u('(')}${s('`/api/orders?u=${userId}`')}${u(')')}`,
+    `  ${k('if')} ${u('(')}${k('!')}res.ok${u(')')} ${k('throw new')} ${y('Error')}${u('(')}${s("'orders failed'")}${u(')')}`,
+    `  ${k('const')} ${u('{')} items${u(',')} total ${u('}')} ${k('=')} ${k('await')} res.${f('json')}${u('()')}`,
+    `  ${k('return')} items.${f('filter')}${u('(')}${a('o')} ${k('=>')} o.qty ${k('>')} ${n('0')}${u(')')}.${f('slice')}${u('(')}${n('0')}${u(',')} ${a('limit')}${u(')')}`,
+    u('}'),
+  ].join('\n');
+}
+
+function optionEl(c, sample, idx) {
+  const p = SC.derive('light', c.light, c.warmth, c.base);
+  const el = document.createElement('div');
+  el.className = 'opt'; el.tabIndex = 0;
+  Object.assign(el.style, { background: p.bg, color: p.text, fontWeight: c.weight });
+  const tag = `<div class="tag" style="color:${p.muted}">OPTION ${idx + 1}</div>`;
+  const proseBox = `<div class="prose" style="font-family:'${c.prose.font}', system-ui, sans-serif;font-size:${c.prose.size}px;line-height:${c.prose.lineHeight};max-width:${c.prose.width}ch">${proseHTML(p)}</div>`;
+  const codeBox = `<pre style="font-family:'${c.font}', ui-monospace, monospace;font-size:${c.size}px;line-height:${c.lineHeight}">${codeHTML(p)}</pre>`;
+  el.innerHTML = tag + (sample === 'code' ? codeBox : sample === 'prose' ? proseBox : proseBox + '<div class="gap"></div>' + codeBox);
+  return el;
+}
+
+function calFor(v) {
+  const t = TESTS[st.ti], c = clone(st.cal);
+  if (t.kind === 'pick') t.apply(c, v); else set(c, t.path, v);
+  return c;
+}
 
 function render() {
-  const t = TESTS[ti];
-  $('prog').style.width = Math.round((ti / TESTS.length) * 100) + '%';
-  $('question').textContent = `Test ${ti + 1} of ${TESTS.length}: ${t.q}`;
+  const t = TESTS[st.ti];
+  $('prog').style.width = Math.round((st.ti / TESTS.length) * 100) + '%';
+  $('part').textContent = `${PARTS[t.part]} · Test ${st.ti + 1} of ${TESTS.length}`;
+  $('question').textContent = t.q;
   $('hint').textContent = t.hint || '';
-  const box = $('pair'); box.innerHTML = '';
-  pair.forEach((opt, i) => {
-    const c = clone(cal);
-    if (opt.font) c.font = opt.font; else set(c, t.path, opt.value);
-    const variant = t.variant || 'light';
-    const p = SC.derive(variant, c[variant], c.warmth);
-    const el = document.createElement('button');
-    el.className = 'opt'; el.type = 'button';
-    Object.assign(el.style, {
-      background: p.bg, color: p.text,
-      fontFamily: `'${c.font}', ui-monospace, monospace`,
-      fontWeight: c.weight, fontSize: c.size + 'px', lineHeight: c.lineHeight,
-    });
-    el.innerHTML = `<div class="tag" style="color:${p.muted}">${i + 1}</div><pre>${SAMPLE(p)}</pre>`;
-    el.addEventListener('click', () => choose(i));
-    box.appendChild(el);
+  const split = $('split').checked, stage = $('stage');
+  stage.className = 'stage' + (split ? ' split' : '');
+  stage.innerHTML = '';
+  if (split) {
+    pair.forEach((v, i) => stage.appendChild(optionEl(calFor(v), t.sample, i)));
+  } else {
+    const el = optionEl(calFor(pair[view]), t.sample, view);
+    el.addEventListener('click', () => flip());
+    stage.appendChild(el);
+  }
+  $('tabs').hidden = split; $('fliphint').hidden = split;
+  document.querySelectorAll('.tab').forEach((b, i) => {
+    b.setAttribute('aria-selected', String(i === view)); b.classList.toggle('seen', seen[i]);
   });
+  const ready = split || (seen[0] && seen[1]);
+  $('c0').disabled = !ready; $('c1').disabled = !ready;
+  $('seenhint').hidden = ready;
+  $('undo').disabled = !history.length;
 }
 
-$('same').addEventListener('click', () => choose(-1));
-$('back').addEventListener('click', undo);
-$('restart').addEventListener('click', () => { $('done').hidden = true; $('actions').hidden = false; $('pair').hidden = false; reset(); });
+function flip(to) {
+  view = typeof to === 'number' ? to : 1 - view;
+  seen[view] = true;
+  render();
+}
+
+// ---------- wiring ----------
+$('go').addEventListener('click', () => { st = fresh(); history = []; show('test'); beginTest(); });
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => flip(Number(b.dataset.i))));
+$('c0').addEventListener('click', () => choose(0));
+$('c1').addEventListener('click', () => choose(1));
+$('nd').addEventListener('click', () => choose(-1));
+$('undo').addEventListener('click', undo);
+$('split').checked = store.get('sc-split') === '1';
+$('split').addEventListener('change', () => { store.set('sc-split', $('split').checked ? '1' : '0'); if (pair && !$('test').hidden) render(); });
+$('restart').addEventListener('click', () => { show('setup'); $('prog').style.width = '0'; });
 $('copy').addEventListener('click', () => {
-  const text = $('code').textContent;
-  navigator.clipboard.writeText(text).then(() => { $('copy').textContent = 'Copied'; }, () => {
+  navigator.clipboard.writeText($('code').textContent).then(() => { $('copy').textContent = 'Copied'; }, () => {
     const r = document.createRange(); r.selectNodeContents($('code'));
     getSelection().removeAllRanges(); getSelection().addRange(r);
   });
 });
 document.addEventListener('keydown', e => {
-  if ($('pair').hidden) return;
-  if (e.key === '1') choose(0);
+  if ($('test').hidden || e.target.tagName === 'INPUT') return;
+  if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); flip(); }
+  else if (e.key === '1') choose(0);
   else if (e.key === '2') choose(1);
-  else if (e.key === '0') choose(-1);
+  else if (e.key === '0' || e.key.toLowerCase() === 'n') choose(-1);
+  else if (e.key === 'Backspace') { e.preventDefault(); undo(); }
 });
-// Start at once; re-draw when the web fonts arrive (a blocked font CDN must not stall the test).
+document.fonts.ready.then(() => { if (pair && !$('test').hidden) render(); });
+
 if (!SC) {
-  $('question').textContent = 'Could not load build/palette.js. Run git pull, or use the GitHub Pages link in the README.';
-} else {
-  reset();
-  document.fonts.ready.then(() => { if (!$('pair').hidden && pair) render(); });
+  $('setup').innerHTML = '<p>Could not load build/palette.js. Run <code>git pull</code>, or open the GitHub Pages link from the README.</p>';
 }
 </script>
 </body>

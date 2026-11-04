@@ -5,6 +5,42 @@
   // Soft Monokai roles: the hue each syntax colour keeps, whatever the tuning.
   const HUES = { keyword: 340, string: 52, func: 85, number: 262, type: 190, param: 25 };
 
+  // Theme bases the eye test chooses between. Each is a hue family (role ->
+  // [hue, extra saturation]) taken from a well-known theme, plus its starting
+  // tuning. Every base still goes through the same contrast floors below.
+  const BASES = {
+    soft: {
+      label: 'Soft Comfort (soft Monokai)', warmth: 100,
+      roles: { keyword: [340, 10], string: [52, 5], func: [85, 0], number: [262, 10], type: [190, 0], param: [25, 15] },
+      light: { bg: 93, tx: 22, sat: 60 }, dark: { bg: 17, tx: 82, sat: 45 },
+    },
+    github: {
+      label: 'GitHub-style', warmth: 25,
+      roles: { keyword: [355, 15], string: [215, 10], func: [262, 0], number: [210, 10], type: [24, 10], param: [24, -10] },
+      light: { bg: 99, tx: 14, sat: 70 }, dark: { bg: 12, tx: 85, sat: 60 },
+    },
+    latte: {
+      label: 'Catppuccin Latte-style', warmth: 0,
+      roles: { keyword: [266, 0], string: [109, -5], func: [220, 5], number: [22, 15], type: [35, 10], param: [355, 5] },
+      light: { bg: 95, tx: 22, sat: 70 }, dark: { bg: 16, tx: 85, sat: 60 },
+    },
+    ink: {
+      label: 'iA Writer-style ink on paper', warmth: 55,
+      roles: { keyword: [215, -20], string: [150, -25], func: [205, -10], number: [280, -20], type: [185, -20], param: [30, -15] },
+      light: { bg: 97, tx: 10, sat: 45 }, dark: { bg: 13, tx: 86, sat: 35 },
+    },
+    sepia: {
+      label: 'E-reader sepia', warmth: 100,
+      roles: { keyword: [345, 0], string: [95, -10], func: [200, -5], number: [280, 0], type: [175, -5], param: [20, 5] },
+      light: { bg: 89, tx: 16, sat: 50 }, dark: { bg: 15, tx: 80, sat: 40 },
+    },
+    atom: {
+      label: 'Atom One Light-style', warmth: 35,
+      roles: { keyword: [301, 0], string: [120, -10], func: [221, 10], number: [35, 10], type: [45, 15], param: [5, 10] },
+      light: { bg: 98, tx: 18, sat: 60 }, dark: { bg: 17, tx: 80, sat: 45 },
+    },
+  };
+
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   function hsl(h, s, l) {
@@ -30,8 +66,9 @@
   // variant: 'dark' | 'light'
   // t: { bg, tx, sat } lightness of background, lightness of text, syntax saturation
   // warmth: 0 (cool blue-grey) .. 100 (warm paper/charcoal)
-  function derive(variant, t, warmth) {
+  function derive(variant, t, warmth, base = 'soft') {
     const dark = variant === 'dark';
+    const R = BASES[base].roles;
     // Neutral greys: blue-grey below 50, pure grey at 50, amber-grey above.
     // (Sweeping the hue from 220 to 40 would pass through green.)
     const nh = warmth < 50 ? 220 : 40;
@@ -58,51 +95,63 @@
       selection: n(t.bg + 11 * dir),
       border: n(t.bg + 6 * dir),
       // Body text always outranks comments, even when the pick is very dim.
-      text: floor(nh, ns * 0.8, t.tx, 10),
+      text: floor(nh, ns * 0.8, t.tx, 7),
       textUi: floor(nh, ns * 0.8, t.tx - 5 * dir, 7),
       muted: n(mid + 8 * dir),
       faint: n(t.bg + 24 * dir),
       comment: floor(nh, ns, mid + 10 * dir, 5.5),
       punct: floor(nh, ns, t.tx - 14 * dir, 5),
-      keyword: role(HUES.keyword, 10),
-      string: role(HUES.string, 5),
-      func: role(HUES.func),
-      number: role(HUES.number, 10),
-      type: role(HUES.type),
-      param: role(HUES.param, 15),
+      keyword: role(...R.keyword),
+      string: role(...R.string),
+      func: role(...R.func),
+      number: role(...R.number),
+      type: role(...R.type),
+      param: role(...R.param),
       error: role(2, 15),
       warning: role(40, 20),
-      info: role(HUES.type),
-      added: role(HUES.func, 0, -8 * dir),
+      info: role(...R.type),
+      added: role(R.func[0], 0, -8 * dir),
       modified: role(205, 5, -8 * dir),
       deleted: role(2, 10, -8 * dir),
-      accent: dark ? role(HUES.string, 5) : role(HUES.param, 15),
+      accent: dark ? role(...R.string) : role(...R.param),
       button: n(dark ? t.bg + 18 : t.tx + 18),
       buttonText: n(dark ? 92 : 97),
     };
   }
 
   // Short result code from the eye test, e.g.
-  // SC1 f=fira w=500 s=15 lh=1.6 wm=40 L=93,25,40 D=18,79,45
-  const FONTS = { jet: 'JetBrains Mono', fira: 'Fira Code', plex: 'IBM Plex Mono', scp: 'Source Code Pro' };
+  // SC2 b=soft f=fira w=550 s=14 lh=1.6 wm=100 pf=lit ps=17 plh=1.8 pw=80 L=93,22,60 D=17,82,45
+  const FONTS = {
+    jet: 'JetBrains Mono', fira: 'Fira Code', plex: 'IBM Plex Mono', scp: 'Source Code Pro',
+    ahm: 'Atkinson Hyperlegible Mono', ahn: 'Atkinson Hyperlegible Next', plexs: 'IBM Plex Sans', lit: 'Literata', inter: 'Inter',
+  };
+  const MONO = ['fira', 'jet', 'plex', 'ahm', 'scp'];
+  const fontKey = name => Object.keys(FONTS).find(k => FONTS[k] === name);
 
   function encode(c) {
-    const key = Object.keys(FONTS).find(k => FONTS[k] === c.font);
     const tri = t => [t.bg, t.tx, t.sat].map(v => Math.round(v)).join(',');
-    return `SC1 f=${key} w=${c.weight} s=${c.size} lh=${c.lineHeight} wm=${Math.round(c.warmth)} L=${tri(c.light)} D=${tri(c.dark)}`;
+    return `SC2 b=${c.base} f=${fontKey(c.font)} w=${c.weight} s=${c.size} lh=${c.lineHeight} wm=${Math.round(c.warmth)} ` +
+      `pf=${fontKey(c.prose.font)} ps=${c.prose.size} plh=${c.prose.lineHeight} pw=${c.prose.width} L=${tri(c.light)} D=${tri(c.dark)}`;
   }
 
   function decode(code) {
-    const kv = Object.fromEntries(code.trim().split(/\s+/).slice(1).map(p => p.split('=')));
+    // Case-insensitive and forgiving, since codes get retyped on phones.
+    const kv = Object.fromEntries(code.trim().split(/\s+/).slice(1).map(p => p.toLowerCase().split('=')));
     const tri = s => { const [bg, tx, sat] = s.split(',').map(Number); return { bg, tx, sat }; };
-    if (!FONTS[kv.f] || !kv.L || !kv.D) throw new Error(`Not a Soft Comfort code: ${code}`);
+    if (!FONTS[kv.f] || !kv.l || !kv.d) throw new Error(`Not a Soft Comfort code: ${code}`);
+    const base = BASES[kv.b] ? kv.b : 'soft';
     return {
-      font: FONTS[kv.f], weight: Number(kv.w), size: Number(kv.s),
-      lineHeight: Number(kv.lh), warmth: Number(kv.wm), light: tri(kv.L), dark: tri(kv.D),
+      base, font: FONTS[kv.f], weight: Number(kv.w), size: Number(kv.s),
+      lineHeight: Number(kv.lh), warmth: Number(kv.wm),
+      prose: {
+        font: FONTS[kv.pf] || FONTS[kv.f], size: Number(kv.ps) || Number(kv.s) + 2,
+        lineHeight: Number(kv.plh) || 1.8, width: Number(kv.pw) || 80,
+      },
+      light: tri(kv.l), dark: tri(kv.d),
     };
   }
 
-  const api = { HUES, FONTS, hsl, contrast, derive, encode, decode };
+  const api = { HUES, BASES, FONTS, MONO, hsl, contrast, derive, encode, decode };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SoftComfort = api;
 })(this);

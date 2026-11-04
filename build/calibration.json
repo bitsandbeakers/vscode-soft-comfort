@@ -1,13 +1,20 @@
 {
+  "base": "soft",
   "font": "Fira Code",
-  "weight": 550,
+  "weight": 500,
   "size": 14,
   "lineHeight": 1.6,
   "warmth": 100,
+  "prose": {
+    "font": "Atkinson Hyperlegible Next",
+    "size": 18,
+    "lineHeight": 1.5,
+    "width": 80
+  },
   "light": {
     "bg": 93,
-    "tx": 34,
-    "sat": 66
+    "tx": 22,
+    "sat": 60
   },
   "dark": {
     "bg": 17,
