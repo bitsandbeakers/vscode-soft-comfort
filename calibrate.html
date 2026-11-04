@@ -17,7 +17,8 @@
 <script src="build/palette.js"></script>
 <style>
   :root { --bg:#e9e8e5; --fg:#26272a; --muted:#585a5f; --line:#cbc9c4; --accent:#2d6a76; --chip:#f6f5f2; --on:#ffffff; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#1f2023; --fg:#dcdddf; --muted:#a3a5aa; --line:#3a3b40; --accent:#98d1dd; --chip:#2a2b2f; --on:#10262b; color-scheme: dark } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#1f2023; --fg:#dcdddf; --muted:#a3a5aa; --line:#3a3b40; --accent:#98d1dd; --chip:#2a2b2f; --on:#10262b; color-scheme: dark } }
+  :root[data-theme="dark"] { --bg:#1f2023; --fg:#dcdddf; --muted:#a3a5aa; --line:#3a3b40; --accent:#98d1dd; --chip:#2a2b2f; --on:#10262b; color-scheme: dark }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, sans-serif; padding:24px max(16px, 3vw) 64px; }
   main { max-width:1280px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
@@ -57,6 +58,7 @@
   table.sum { border-collapse:collapse; font-size:.93rem; }
   table.sum td { padding:4px 14px 4px 0; vertical-align:top; }
   table.sum td:first-child { color:var(--muted); white-space:nowrap; }
+  .key { font:700 2rem system-ui, sans-serif; letter-spacing:.02em; color:var(--accent); user-select:all; }
   kbd { font:600 .8rem ui-monospace, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; background:var(--chip); }
   .ev { font-size:.78rem; font-weight:650; padding:1px 7px; border-radius:999px; border:1px solid var(--line); white-space:nowrap; }
   [hidden] { display:none !important; }
@@ -82,7 +84,8 @@
         <li>Like at the optician: you see option <b>1</b>, then option <b>2</b>, in the same spot. Flip between them as often as you like with <kbd>Space</kbd> or the arrow keys, then choose.</li>
         <li>Names and numbers stay hidden, and the order is random each time.</li>
         <li><b>Judge by reading, not by first glance.</b> Read a full line or two in each. Soft, low-contrast text looks calm for a second and then tires you; that's what went wrong with 1.2.0.</li>
-        <li><b>No difference</b> is a real answer. It records which settings don't matter to you, and those stay at the research-backed defaults.</li>
+        <li>Say how sure you are: <b>clearly</b> when one wins at a glance, <b>slightly</b> when it's close. Keys <kbd>1</kbd> to <kbd>5</kbd>, left to right.</li>
+        <li><b>Same</b> is a real answer. It records which settings don't matter to you, and those stay at the research-backed defaults.</li>
         <li>Six parts, about 15 minutes: the theme, its colours, writing text, code, highlights and cursor, then spacing and the Markdown preview. <kbd>Backspace</kbd> undoes.</li>
       </ul>
     </details>
@@ -113,9 +116,11 @@
       </div>
       <div class="stage" id="stage"></div>
       <div class="row">
-        <button class="b primary" id="c0" type="button">1 is better <kbd>1</kbd></button>
-        <button class="b primary" id="c1" type="button">2 is better <kbd>2</kbd></button>
-        <button class="b" id="nd" type="button">No difference <kbd>0</kbd></button>
+        <button class="b primary" type="button" data-pick="0" data-fx="2">1 clearly <kbd>1</kbd></button>
+        <button class="b" type="button" data-pick="0" data-fx="1">1 slightly <kbd>2</kbd></button>
+        <button class="b" id="nd" type="button" data-pick="-1" data-fx="0">Same <kbd>3</kbd></button>
+        <button class="b" type="button" data-pick="1" data-fx="1">2 slightly <kbd>4</kbd></button>
+        <button class="b primary" type="button" data-pick="1" data-fx="2">2 clearly <kbd>5</kbd></button>
         <span class="spacer"></span>
         <button class="b" id="undo" type="button">Undo</button>
       </div>
@@ -125,12 +130,19 @@
 
   <!-- Result screen -->
   <section id="done" class="card" hidden>
-    <h2>Done. Paste this one line back to Claude:</h2>
-    <div class="code" id="code"></div>
-    <div class="row">
-      <button class="b primary" id="copy" type="button">Copy</button>
-      <button class="b" id="restart" type="button">Start over</button>
+    <h2 id="donehead">Done.</h2>
+    <div id="keybox" hidden>
+      <p>Tell Claude these two words:</p>
+      <div class="key" id="key"></div>
+      <p class="muted">Saved. "Latest" works too.</p>
     </div>
+    <p class="muted" id="savemsg"></p>
+    <details id="codebox">
+      <summary>Full code (if the two words don't work)</summary>
+      <div class="code" id="code"></div>
+      <div class="row" style="margin-top:8px"><button class="b" id="copy" type="button">Copy</button></div>
+    </details>
+    <div class="row"><button class="b" id="restart" type="button">Start over</button></div>
     <details>
       <summary>What you picked</summary>
       <table class="sum" id="sum"></table>
@@ -251,7 +263,8 @@ const store = { get: k => { try { return localStorage.getItem(k); } catch { retu
 // st holds everything undo needs to restore.
 let st, pair, view, seen, history = [];
 
-const fresh = () => ({ cal: clone(START), ti: 0, sub: null, nd: [], answers: 0, ndAnswers: 0 });
+// fx: per test, the strongest preference given (0 same, 1 slightly, 2 clearly).
+const fresh = () => ({ cal: clone(START), ti: 0, sub: null, nd: [], fx: {}, answers: 0, ndAnswers: 0 });
 
 function beginTest() {
   const t = TESTS[st.ti];
@@ -286,10 +299,12 @@ function nextPair() {
   render();
 }
 
-function choose(i) {   // 0 or 1, or -1 for no difference
+function choose(i, fx = 1) {   // i: 0 or 1, or -1 for same; fx: 1 slightly, 2 clearly
   if (i >= 0 && !(seen[0] && seen[1]) && !$('split').checked) return;
   history.push(clone(st));
   const t = TESTS[st.ti];
+  if (i < 0) fx = 0;
+  st.fx[t.id] = Math.max(st.fx[t.id] || 0, fx);
   st.answers++;
   if (i < 0) st.ndAnswers++;
   if (t.kind === 'pick') {
@@ -302,7 +317,10 @@ function choose(i) {   // 0 or 1, or -1 for no difference
   const s = st.sub;
   s.rounds++;
   if (pair[i] === get(st.cal, t.path)) { s.dir = -s.dir; s.step /= 2; }   // current held: turn and refine
-  else set(st.cal, t.path, pair[i]);                                     // neighbour won: keep walking
+  else {                                                                 // neighbour won: keep walking,
+    set(st.cal, t.path, pair[i]);                                        // with smaller steps if it was close
+    if (fx < 2) s.step /= 2;
+  }
   nextPair();
 }
 
@@ -332,7 +350,11 @@ function show(which) {
 function finish() {
   show('done');
   $('prog').style.width = '100%';
-  $('code').textContent = SC.encode(st.cal) + (st.nd.length ? ` nd=${st.nd.join('.')}` : '');
+  // fx: one letter per test in order. c clearly, s slightly, 0 same, - skipped.
+  const fx = TESTS.map(t => (t.id in st.fx ? '0sc'[st.fx[t.id]] : '-')).join('');
+  const code = SC.encode(st.cal) + (st.nd.length ? ` nd=${st.nd.join('.')}` : '') + ` fx=${fx}`;
+  $('code').textContent = code;
+  save(code);
   const c = st.cal, p = SC.derive('light', c.light, c.warmth, c.base);
   const rows = [
     ['Theme', SC.BASES[c.base].label],
@@ -344,9 +366,41 @@ function finish() {
     ['Cursor', `${c.hl.cst}, ${c.hl.cw}px, ${c.hl.cc === 't' ? 'text colour' : 'accent colour'}`],
     ['Letter spacing', `code ${c.ls}px, writing ${c.prose.ls}px`],
     ['Markdown preview', `${c.md.font}, ${c.md.size}px, line height ${c.md.lineHeight}`],
-    ['Made no difference', st.nd.length ? st.nd.map(id => TESTS.find(t => t.id === id).q).join(' · ') : 'nothing'],
+    ...[[2, 'Mattered a lot'], [1, 'Mattered a little'], [0, 'Made no difference']].map(([v, k]) => {
+      const qs = TESTS.filter(t => st.fx[t.id] === v).map(t => t.q);
+      return [k, qs.length ? qs.join(' · ') : 'nothing'];
+    }),
   ];
   $('sum').innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join('');
+}
+
+// ---------- saving ----------
+// On claude.ai the result goes to the artifact's database under two short
+// words, so only those need typing back. Elsewhere the full code is the result.
+const WORDS_A = ['amber', 'blue', 'calm', 'coral', 'dusty', 'early', 'fern', 'gold', 'happy', 'ivory', 'jade', 'kind',
+  'lemon', 'mint', 'navy', 'olive', 'pale', 'quiet', 'rose', 'sage', 'teal', 'umber', 'warm', 'young'];
+const WORDS_B = ['otter', 'heron', 'fox', 'badger', 'wren', 'moth', 'trout', 'owl', 'hare', 'finch', 'seal', 'crane',
+  'lynx', 'robin', 'stoat', 'swan', 'toad', 'vole', 'whale', 'yak', 'zebra', 'puffin', 'koala', 'lark'];
+const pickWord = a => a[Math.floor(Math.random() * a.length)];
+
+async function save(code) {
+  $('keybox').hidden = true; $('codebox').open = true; $('savemsg').textContent = '';
+  $('donehead').textContent = 'Done. Paste the full code back to Claude:';
+  const db = await Promise.race([window.claude?.use ? window.claude.use('db') : null,
+    new Promise(r => setTimeout(() => r(null), 10000))]);
+  if (!db) return;
+  $('savemsg').textContent = 'Saving…';
+  try {
+    const key = `${pickWord(WORDS_A)} ${pickWord(WORDS_B)}`;
+    const row = { key, code, fx: st.fx, nd: st.nd, at: new Date().toISOString() };
+    await db.doc('results/' + key.replace(' ', '-')).set(row);
+    await db.doc('results/latest').set(row);
+    $('key').textContent = key;
+    $('keybox').hidden = false; $('codebox').open = false; $('savemsg').textContent = '';
+    $('donehead').textContent = 'Done.';
+  } catch (e) {
+    $('savemsg').textContent = `Couldn't save (${e && e.code || 'error'}). Paste the full code below instead.`;
+  }
 }
 
 // ---------- samples ----------
@@ -477,7 +531,7 @@ function render() {
     b.setAttribute('aria-selected', String(i === view)); b.classList.toggle('seen', seen[i]);
   });
   const ready = split || (seen[0] && seen[1]);
-  $('c0').disabled = !ready; $('c1').disabled = !ready;
+  document.querySelectorAll('[data-pick]').forEach(b => { if (b.dataset.pick !== '-1') b.disabled = !ready; });
   $('seenhint').hidden = ready;
   $('undo').disabled = !history.length;
 }
@@ -502,9 +556,8 @@ $('gonew').addEventListener('click', () => {
 if (SC) fetch('build/calibration.json', { cache: 'no-store' }).then(r => r.json())
   .then(j => { if (!$('startcode').value) $('startcode').value = SC.encode(SC.complete(j)); }).catch(() => {});
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => flip(Number(b.dataset.i))));
-$('c0').addEventListener('click', () => choose(0));
-$('c1').addEventListener('click', () => choose(1));
-$('nd').addEventListener('click', () => choose(-1));
+document.querySelectorAll('[data-pick]').forEach(b =>
+  b.addEventListener('click', () => choose(Number(b.dataset.pick), Number(b.dataset.fx))));
 $('undo').addEventListener('click', undo);
 $('split').checked = store.get('sc-split') === '1';
 $('split').addEventListener('change', () => { store.set('sc-split', $('split').checked ? '1' : '0'); if (pair && !$('test').hidden) render(); });
@@ -518,8 +571,10 @@ $('copy').addEventListener('click', () => {
 document.addEventListener('keydown', e => {
   if ($('test').hidden || e.target.tagName === 'INPUT') return;
   if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); flip(); }
-  else if (e.key === '1') choose(0);
-  else if (e.key === '2') choose(1);
+  else if (e.key >= '1' && e.key <= '5') {   // left to right: 1 clearly, 1 slightly, same, 2 slightly, 2 clearly
+    const b = document.querySelectorAll('[data-pick]')[Number(e.key) - 1];
+    choose(Number(b.dataset.pick), Number(b.dataset.fx));
+  }
   else if (e.key === '0' || e.key.toLowerCase() === 'n') choose(-1);
   else if (e.key === 'Backspace') { e.preventDefault(); undo(); }
 });
