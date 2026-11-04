@@ -36,7 +36,7 @@ Full version with the reasons:
   "workbench.colorTheme": "Soft Comfort Light",
 
   // Thicker strokes blur less than Consolas' thin ones.
-  "editor.fontFamily": "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+  "editor.fontFamily": "'Fira Code', 'Cascadia Code', Consolas, monospace",
   "editor.fontWeight": "500",
   "editor.fontSize": 15,
   "editor.lineHeight": 1.6,          // more room between lines = less crowding
@@ -52,30 +52,30 @@ Full version with the reasons:
 }
 ```
 
-[JetBrains Mono](https://www.jetbrains.com/lp/mono/) is free. On a work machine where you can't install fonts, Cascadia Code ships with Windows Terminal.
+[Fira Code](https://github.com/tonsky/FiraCode/releases) is free. On a work machine where you can't install fonts, Cascadia Code ships with Windows Terminal.
 
 Outside the editor:
 - Match screen brightness to the room. A screen brighter than its surroundings is the biggest strain driver.
 - Use the 20-20-20 rule: every 20 minutes, look 20 feet away for 20 seconds.
 - Blink on purpose. Screen work cuts your blink rate by about half.
 
-## Palette
+## Eye test (calibration)
 
-| Role | Dark | Contrast | Light | Contrast |
-| --- | --- | --- | --- | --- |
-| Background | `#2b2c30` | — | `#f3f0e8` | — |
-| Text | `#cfccc4` | 8.7 | `#45423c` | 8.8 |
-| Comments | `#959285` | 4.5 | `#736e62` | 4.5 |
-| Keywords | `#eb9bb4` | 6.6 | `#a83e66` | 5.2 |
-| Strings | `#d8cf8f` | 8.8 | `#7a6514` | 5.0 |
-| Functions | `#b3cf84` | 8.1 | `#4f7024` | 5.0 |
-| Numbers | `#b9a0e6` | 6.1 | `#6c4fb0` | 5.5 |
-| Types | `#8cc8d4` | 7.5 | `#22707e` | 5.0 |
-| Parameters | `#e0a477` | 6.5 | `#9a5320` | 5.1 |
+Open [the eye test](https://bitsandbeakers.github.io/vscode-soft-comfort/calibrate.html) on the monitor you code on, at your normal distance and lighting. It works like an optician's test: two blind options per question, pick the one that's clearer and calmer, about 3 minutes. At the end it gives one short line like:
+
+```
+SC1 f=fira w=500 s=15 lh=1.6 wm=40 L=93,25,45 D=18,79,50
+```
+
+Rebuild the themes and `settings.json` from it:
+
+```
+node build/generate.js "SC1 f=fira w=500 s=15 lh=1.6 wm=40 L=93,25,45 D=18,79,50"
+```
 
 ## Tuning
 
-Both themes are generated from one palette each in `build/generate.js`. Change a colour there, run `node build/generate.js`, and it rewrites `themes/` and prints every colour's contrast.
+Both themes are derived from `build/calibration.json` by `build/palette.js` (shared with the eye test). Every syntax colour is pushed until it clears 5:1 contrast (5.5:1 on dark), comments 4.5:1. Run `node build/generate.js` to rebuild `themes/` and print each colour's contrast.
 
 ## License
 

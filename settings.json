@@ -2,7 +2,7 @@
   "window.autoDetectColorScheme": true,
   "workbench.preferredLightColorTheme": "Soft Comfort Light",
   "workbench.preferredDarkColorTheme": "Soft Comfort Dark",
-  "editor.fontFamily": "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+  "editor.fontFamily": "'Fira Code', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
   "editor.fontWeight": "500",
   "editor.fontSize": 15,
   "editor.lineHeight": 1.6,

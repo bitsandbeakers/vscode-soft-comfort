@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soft Comfort Eye Test</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=JetBrains+Mono:wght@300..700&family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Source+Code+Pro:wght@300..700&display=swap">
+<script src="build/palette.js"></script>
+<style>
+  /* Eye-test layout: one question at a time, two blind options, a short result code at the end */
+  :root { --bg:#e9e8e5; --fg:#2f3033; --muted:#64666b; --line:#cfcdc8; --accent:#2d6a76; --chip:#f4f3f0; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1f2023; --fg:#d3d4d6; --muted:#9a9ca1; --line:#3a3b40; --accent:#98d1dd; --chip:#2a2b2f; color-scheme: dark } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, sans-serif; padding:24px max(16px, 4vw) 48px; }
+  main { max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+  h1 { margin:0; font-size:1.35rem; font-weight:600; }
+  .q { font-size:1.1rem; font-weight:600; }
+  .muted { color:var(--muted); font-size:.92rem; margin:0; }
+  .bar { height:6px; background:var(--line); border-radius:3px; overflow:hidden; }
+  .bar > div { height:100%; background:var(--accent); transition:width .2s; }
+  .pair { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap:14px; }
+  .opt { all:unset; cursor:pointer; border-radius:12px; padding:14px 16px 16px; border:3px solid transparent; min-width:0; overflow-x:auto; display:block; }
+  .opt:hover, .opt:focus-visible { border-color:var(--accent); }
+  .opt .tag { font:600 .85rem system-ui, sans-serif; margin-bottom:8px; opacity:.75; }
+  .opt pre { margin:0; font:inherit; white-space:pre; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; }
+  button.b { font:inherit; font-size:.92rem; padding:9px 16px; border-radius:999px; border:1px solid var(--line); background:var(--chip); color:var(--fg); cursor:pointer; }
+  button.b:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .code { font:500 1.05rem 'Fira Code', ui-monospace, monospace; background:var(--chip); border:1px solid var(--line); border-radius:10px; padding:14px; word-break:break-all; }
+  @media (prefers-reduced-motion: reduce) { .bar > div { transition:none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Soft Comfort eye test</h1>
+  <p class="muted" id="intro">Like at the optician: two options, pick whichever is clearer and calmer to read. Names and numbers stay hidden. Sit at your normal distance in your usual lighting. About 3 minutes. Keys: 1, 2, or 0 for "can't tell".</p>
+  <div class="bar"><div id="prog" style="width:0"></div></div>
+  <div class="q" id="question"></div>
+  <p class="muted" id="hint"></p>
+  <div class="pair" id="pair"></div>
+  <div class="row" id="actions">
+    <button class="b" id="same" type="button">Can't tell / both fine</button>
+    <button class="b" id="back" type="button">Undo last</button>
+  </div>
+  <div id="done" hidden>
+    <p class="q">Done. Paste this one line back to Claude:</p>
+    <div class="code" id="code"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="b" id="copy" type="button">Copy</button>
+      <button class="b" id="restart" type="button">Start over</button>
+    </div>
+  </div>
+</main>
+<script>
+const SC = window.SoftComfort;
+
+// Starting point = the current build/calibration.json values.
+const start = { font: 'Fira Code', weight: 500, size: 15, lineHeight: 1.6, warmth: 40,
+  light: { bg: 93, tx: 25, sat: 45 }, dark: { bg: 18, tx: 79, sat: 50 } };
+
+// Each numeric test is a staircase: compare current-step vs current+step,
+// keep the winner, halve the step. Font is a knockout between four faces.
+const TESTS = [
+  { id: 'font', q: 'Which text is sharper?', hint: 'Look at 0 O, 1 l I, and the brackets.', kind: 'font' },
+  { id: 'weight', q: 'Which stroke thickness is easier?', path: ['weight'], lo: 300, hi: 650, step: 100, round: 50 },
+  { id: 'size', q: 'Which size reads without effort?', path: ['size'], lo: 12, hi: 20, step: 2, round: 1 },
+  { id: 'lineHeight', q: 'Which line spacing is calmer?', path: ['lineHeight'], lo: 1.2, hi: 2.0, step: 0.2, round: 0.05 },
+  { id: 'warmth', q: 'Which feels gentler on your eyes?', hint: 'Cooler vs warmer greys.', path: ['warmth'], lo: 0, hi: 100, step: 30, round: 5, variant: 'light' },
+  { id: 'lbg', q: 'Light theme: which background is more comfortable?', path: ['light', 'bg'], lo: 84, hi: 98, step: 4, round: 1, variant: 'light' },
+  { id: 'ltx', q: 'Light theme: which text darkness is easier?', hint: 'Too dark glares; too light strains.', path: ['light', 'tx'], lo: 10, hi: 40, step: 8, round: 1, variant: 'light' },
+  { id: 'lsat', q: 'Light theme: which colour strength do you prefer?', path: ['light', 'sat'], lo: 10, hi: 75, step: 18, round: 1, variant: 'light' },
+  { id: 'dbg', q: 'Dark theme: which background is more comfortable?', hint: 'Best done in the lighting you use dark mode in.', path: ['dark', 'bg'], lo: 8, hi: 28, step: 5, round: 1, variant: 'dark' },
+  { id: 'dtx', q: 'Dark theme: which text brightness is easier?', hint: 'Watch for glow or halos around letters.', path: ['dark', 'tx'], lo: 60, hi: 92, step: 8, round: 1, variant: 'dark' },
+  { id: 'dsat', q: 'Dark theme: which colour strength do you prefer?', path: ['dark', 'sat'], lo: 10, hi: 75, step: 18, round: 1, variant: 'dark' },
+];
+const ROUNDS = 4;
+const FONT_LIST = ['Fira Code', 'JetBrains Mono', 'IBM Plex Mono', 'Source Code Pro'];
+
+let cal, ti, round, step, bracket, history, pair;
+
+const $ = id => document.getElementById(id);
+const get = (o, p) => p.reduce((a, k) => a[k], o);
+const set = (o, p, v) => { p.slice(0, -1).reduce((a, k) => a[k], o)[p[p.length - 1]] = v; };
+const roundTo = (v, r) => Number((Math.round(v / r) * r).toFixed(2));
+const clone = o => JSON.parse(JSON.stringify(o));
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+function reset() {
+  cal = clone(start); ti = 0; history = [];
+  beginTest();
+}
+
+function beginTest() {
+  const t = TESTS[ti];
+  round = 0;
+  if (t.kind === 'font') bracket = FONT_LIST.slice().sort(() => Math.random() - 0.5);
+  else step = t.step;
+  next();
+}
+
+function next() {
+  const t = TESTS[ti];
+  if (t.kind === 'font') {
+    if (bracket.length === 1) { cal.font = bracket[0]; return advance(); }
+    pair = [{ font: bracket[0] }, { font: bracket[1] }];
+  } else {
+    if (round >= ROUNDS) return advance();
+    const cur = get(cal, t.path);
+    const a = Math.max(t.lo, roundTo(cur - step, t.round));
+    const b = Math.min(t.hi, roundTo(cur + step, t.round));
+    if (a === b) return advance();
+    pair = [{ value: a }, { value: b }];
+  }
+  if (Math.random() < 0.5) pair.reverse();   // blind: sides are random
+  render();
+}
+
+function choose(i) {
+  history.push({ cal: clone(cal), ti, round, step, bracket: bracket && bracket.slice() });
+  const t = TESTS[ti];
+  if (t.kind === 'font') {
+    // can't tell: keep the current pick (Fira Code) if it's in the pair
+    const loser = i >= 0 ? pair[1 - i].font : (pair[0].font === start.font ? pair[1] : pair[0]).font;
+    bracket = bracket.filter(f => f !== loser);
+    bracket.push(bracket.shift());           // winner goes to the back, next pair meets
+  } else {
+    if (i >= 0) set(cal, t.path, pair[i].value);
+    if (i < 0) { round = ROUNDS; return next(); }   // can't tell: keep current, move on
+    round++; step = Math.max(t.round, step / 2);
+  }
+  next();
+}
+
+function undo() {
+  const h = history.pop();
+  if (!h) return;
+  ({ ti, round, step } = h); cal = h.cal; bracket = h.bracket;
+  $('done').hidden = true; $('actions').hidden = false; $('pair').hidden = false;
+  next();
+}
+
+function advance() {
+  ti++;
+  if (ti >= TESTS.length) return finish();
+  beginTest();
+}
+
+function finish() {
+  $('prog').style.width = '100%';
+  $('question').textContent = ''; $('hint').textContent = '';
+  $('pair').hidden = true; $('actions').hidden = true;
+  $('code').textContent = SC.encode(cal);
+  $('done').hidden = false;
+}
+
+const SAMPLE = p => {
+  const s = (c, t) => `<span style="color:${c}">${esc(t)}</span>`;
+  return [
+    s(p.comment, '// 0O 1lI| {} [] => != === rn m'),
+    `${s(p.keyword, 'export async function')} ${s(p.func, 'loadOrders')}(${s(p.param, 'userId')}: ${s(p.type, 'string')}) {`,
+    `  ${s(p.keyword, 'const')} res ${s(p.keyword, '=')} ${s(p.keyword, 'await')} ${s(p.func, 'fetch')}(${s(p.string, '`/api/orders?u=${userId}`')})`,
+    `  ${s(p.keyword, 'if')} (${s(p.keyword, '!')}res.ok) ${s(p.keyword, 'throw new')} ${s(p.type, 'Error')}(${s(p.string, "'orders failed'")})`,
+    `  ${s(p.keyword, 'const')} { items, total } ${s(p.keyword, '=')} ${s(p.keyword, 'await')} res.${s(p.func, 'json')}()`,
+    `  ${s(p.keyword, 'return')} items.${s(p.func, 'filter')}(${s(p.param, 'o')} ${s(p.keyword, '=>')} o.qty ${s(p.keyword, '>')} ${s(p.number, '0')}).${s(p.func, 'slice')}(${s(p.number, '0')}, ${s(p.number, '25')})`,
+    `}`,
+  ].join('\n');
+};
+
+function render() {
+  const t = TESTS[ti];
+  $('prog').style.width = Math.round((ti / TESTS.length) * 100) + '%';
+  $('question').textContent = `Test ${ti + 1} of ${TESTS.length}: ${t.q}`;
+  $('hint').textContent = t.hint || '';
+  const box = $('pair'); box.innerHTML = '';
+  pair.forEach((opt, i) => {
+    const c = clone(cal);
+    if (opt.font) c.font = opt.font; else set(c, t.path, opt.value);
+    const variant = t.variant || 'light';
+    const p = SC.derive(variant, c[variant], c.warmth);
+    const el = document.createElement('button');
+    el.className = 'opt'; el.type = 'button';
+    Object.assign(el.style, {
+      background: p.bg, color: p.text,
+      fontFamily: `'${c.font}', ui-monospace, monospace`,
+      fontWeight: c.weight, fontSize: c.size + 'px', lineHeight: c.lineHeight,
+    });
+    el.innerHTML = `<div class="tag" style="color:${p.muted}">${i + 1}</div><pre>${SAMPLE(p)}</pre>`;
+    el.addEventListener('click', () => choose(i));
+    box.appendChild(el);
+  });
+}
+
+$('same').addEventListener('click', () => choose(-1));
+$('back').addEventListener('click', undo);
+$('restart').addEventListener('click', () => { $('done').hidden = true; $('actions').hidden = false; $('pair').hidden = false; reset(); });
+$('copy').addEventListener('click', () => {
+  const text = $('code').textContent;
+  navigator.clipboard.writeText(text).then(() => { $('copy').textContent = 'Copied'; }, () => {
+    const r = document.createRange(); r.selectNodeContents($('code'));
+    getSelection().removeAllRanges(); getSelection().addRange(r);
+  });
+});
+document.addEventListener('keydown', e => {
+  if ($('pair').hidden) return;
+  if (e.key === '1') choose(0);
+  else if (e.key === '2') choose(1);
+  else if (e.key === '0') choose(-1);
+});
+document.fonts.ready.then(reset);
+</script>
+</body>
+</html>

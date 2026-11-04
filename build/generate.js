@@ -1,53 +1,28 @@
-// Generates both theme files from one palette per variant, and prints each
-// syntax colour's contrast against its background so tuning stays honest.
+// Builds both themes and settings.json from build/calibration.json, and prints
+// each syntax colour's contrast against its background so tuning stays honest.
+//
 // Run: node build/generate.js
+// Apply an eye-test result: node build/generate.js "SC1 f=fira w=500 ..."
 const fs = require('fs');
 const path = require('path');
+const { derive, contrast, decode } = require('./palette');
+
+const root = path.join(__dirname, '..');
+const calFile = path.join(__dirname, 'calibration.json');
+if (process.argv[2]) {
+  fs.writeFileSync(calFile, JSON.stringify(decode(process.argv[2]), null, 2) + '\n');
+}
+const cal = JSON.parse(fs.readFileSync(calFile, 'utf8'));
 
 const palettes = {
   dark: {
-    name: 'Soft Comfort Dark',
-    type: 'dark',
-    file: 'soft-comfort-dark-color-theme.json',
-    // Lifted, warm charcoal instead of near-black: a brighter background keeps
-    // pupils smaller, which cuts the glow/halo around light text.
-    bg: '#2b2c30', bgDeep: '#26272a', bgRaised: '#323338', line: '#313237',
-    selection: '#45464d', border: '#38393f',
-    text: '#cfccc4', textUi: '#bdbab2', muted: '#8f8c82', faint: '#64625c',
-    comment: '#959285', punct: '#a8a59c',
-    // Soft Monokai: same colour roles, saturation pulled down.
-    keyword: '#eb9bb4', string: '#d8cf8f', func: '#b3cf84', number: '#b9a0e6',
-    type: '#8cc8d4', param: '#e0a477',
-    error: '#e8928f', warning: '#dcbc78', info: '#8cc8d4',
-    added: '#93ad6c', modified: '#7fa6c4', deleted: '#c27b78',
-    accent: '#d8cf8f', button: '#5c5a52', buttonText: '#efece4',
+    name: 'Soft Comfort Dark', type: 'dark', file: 'soft-comfort-dark-color-theme.json',
+    ...derive('dark', cal.dark, cal.warmth),
   },
   light: {
-    name: 'Soft Comfort Light',
-    type: 'light',
-    file: 'soft-comfort-light-color-theme.json',
-    // Warm paper, never pure white: for bright rooms, where a dark theme
-    // makes your pupils open wide and text blurs.
-    bg: '#f3f0e8', bgDeep: '#ebe7dd', bgRaised: '#f8f6f0', line: '#ebe7de',
-    selection: '#d9d3c4', border: '#ddd8cc',
-    text: '#45423c', textUi: '#4f4c45', muted: '#6f6b61', faint: '#a29d91',
-    comment: '#736e62', punct: '#5f5b52',
-    keyword: '#a83e66', string: '#7a6514', func: '#4f7024', number: '#6c4fb0',
-    type: '#22707e', param: '#9a5320',
-    error: '#b0403c', warning: '#8a6410', info: '#22707e',
-    added: '#6f9442', modified: '#4f7fa6', deleted: '#b85c58',
-    accent: '#9a5320', button: '#6a6558', buttonText: '#f8f6f0',
+    name: 'Soft Comfort Light', type: 'light', file: 'soft-comfort-light-color-theme.json',
+    ...derive('light', cal.light, cal.warmth),
   },
-};
-
-const lum = h => {
-  const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255)
-    .map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-};
-const contrast = (a, b) => {
-  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
-  return (x + 0.05) / (y + 0.05);
 };
 
 function theme(p) {
@@ -271,8 +246,22 @@ function theme(p) {
   return { name: p.name, type: p.type, semanticHighlighting: true, colors, tokenColors, semanticTokenColors };
 }
 
+const settings = {
+  'window.autoDetectColorScheme': true,
+  'workbench.preferredLightColorTheme': palettes.light.name,
+  'workbench.preferredDarkColorTheme': palettes.dark.name,
+  'editor.fontFamily': `'${cal.font}', 'JetBrains Mono', 'Cascadia Code', Consolas, monospace`,
+  'editor.fontWeight': String(cal.weight),
+  'editor.fontSize': cal.size,
+  'editor.lineHeight': cal.lineHeight,
+  'editor.letterSpacing': 0.3,
+  'editor.cursorBlinking': 'solid',
+  'editor.minimap.enabled': false,
+};
+fs.writeFileSync(path.join(root, 'settings.json'), JSON.stringify(settings, null, 2) + '\n');
+
 for (const p of Object.values(palettes)) {
-  const out = path.join(__dirname, '..', 'themes', p.file);
+  const out = path.join(root, 'themes', p.file);
   fs.writeFileSync(out, JSON.stringify(theme(p), null, 2) + '\n');
   console.log(`${p.name} (${p.bg})`);
   for (const k of ['text', 'comment', 'keyword', 'string', 'func', 'number', 'type', 'param', 'punct']) {

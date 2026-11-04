@@ -1,0 +1,9 @@
+{
+  "font": "Fira Code",
+  "weight": 500,
+  "size": 15,
+  "lineHeight": 1.6,
+  "warmth": 40,
+  "light": { "bg": 93, "tx": 25, "sat": 45 },
+  "dark": { "bg": 18, "tx": 79, "sat": 50 }
+}
