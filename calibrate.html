@@ -89,12 +89,20 @@
         <li>Six parts, about 15 minutes: the theme, its colours, writing text, code, highlights and cursor, then spacing and the Markdown preview. <kbd>Backspace</kbd> undoes.</li>
       </ul>
     </details>
-    <div class="row"><button class="b primary" id="go" type="button">Start the full test</button></div>
+    <div class="row">
+      <button class="b primary" id="gorefine" type="button" disabled>Refine my last calibration</button>
+      <button class="b" id="go" type="button">Start from scratch</button>
+    </div>
+    <p class="muted" id="refinehint">Refine runs every test again, starting from the settings you have now, so each test only checks the values next to yours.</p>
     <details id="partial">
-      <summary>Already done parts 1–4? Run only the new parts</summary>
-      <p class="muted">Parts 5–6 (highlights, cursor, letter spacing, Markdown preview) start from your current settings. This box is filled from the repo's latest calibration; paste a different SC2 line to start from that instead.</p>
+      <summary>Start from a different code, or from a later part</summary>
+      <p class="muted">The box holds your latest calibration. Paste a different SC2 line to start from that instead.</p>
       <input id="startcode" type="text" spellcheck="false" style="font:500 .9rem ui-monospace, monospace;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%">
-      <div class="row"><button class="b primary" id="gonew" type="button">Run parts 5–6 only</button><span class="muted" id="starterr"></span></div>
+      <div class="row">
+        <label class="muted" for="frompart">From part</label>
+        <select id="frompart" style="font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)"></select>
+        <button class="b primary" id="gonew" type="button">Start</button><span class="muted" id="starterr"></span>
+      </div>
     </details>
   </section>
 
@@ -186,7 +194,6 @@ const START = SC && SC.complete({
 // "No difference" ends the test there.
 const PARTS = ['Theme', 'Colours', 'Writing', 'Code', 'Highlights and cursor', 'Spacing and preview']
   .map((name, i, all) => `Part ${i + 1} of ${all.length} · ${name}`);
-const NEW_PART = 4;   // first part added after the first full run
 const TESTS = [
   { id: 'th', part: 0, kind: 'pick', sample: 'both', q: 'Which could you read and write in all day?',
     hint: 'Read a paragraph and the bullets, then glance at the code. Overall comfort, not prettiness.',
@@ -544,17 +551,26 @@ function flip(to) {
 
 // ---------- wiring ----------
 $('go').addEventListener('click', () => { st = fresh(); history = []; show('test'); beginTest(); });
-$('gonew').addEventListener('click', () => {
+// Start from an existing calibration at a given part. Earlier parts keep
+// their "made no difference" marks; the parts being rerun record afresh.
+function startFrom(code, part) {
   let cal;
-  try { cal = SC.decode($('startcode').value); } catch (e) { $('starterr').textContent = 'That code did not parse. Check it starts with SC2.'; return; }
+  try { cal = SC.decode(code); } catch (e) { $('starterr').textContent = 'That code did not parse. Check it starts with SC2.'; return; }
   st = fresh();
-  st.cal = cal; st.nd = cal.nd || []; delete cal.nd;
-  st.ti = TESTS.findIndex(t => t.part >= NEW_PART);
+  const before = new Set(TESTS.filter(t => t.part < part).map(t => t.id));
+  st.cal = cal; st.nd = (cal.nd || []).filter(id => before.has(id)); delete cal.nd;
+  st.ti = TESTS.findIndex(t => t.part >= part);
   history = []; show('test'); beginTest();
-});
-// Prefill the "new parts only" box with the repo's current calibration.
+}
+$('frompart').innerHTML = PARTS.map((n, i) => `<option value="${i}">${i + 1}. ${n}</option>`).join('');
+$('gonew').addEventListener('click', () => startFrom($('startcode').value, Number($('frompart').value)));
+$('gorefine').addEventListener('click', () => startFrom($('startcode').value, 0));
+// Fill the start box with the latest calibration, then allow Refine.
 if (SC) fetch('build/calibration.json', { cache: 'no-store' }).then(r => r.json())
-  .then(j => { if (!$('startcode').value) $('startcode').value = SC.encode(SC.complete(j)); }).catch(() => {});
+  .then(j => {
+    if (!$('startcode').value) $('startcode').value = SC.encode(SC.complete(j));
+    $('gorefine').disabled = false;
+  }).catch(() => { $('refinehint').textContent = 'Could not load your last calibration. Open "Start from a different code" and paste your SC2 line.'; });
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => flip(Number(b.dataset.i))));
 document.querySelectorAll('[data-pick]').forEach(b =>
   b.addEventListener('click', () => choose(Number(b.dataset.pick), Number(b.dataset.fx))));
