@@ -185,7 +185,103 @@
     });
   }
 
-  const api = { HUES, BASES, FONTS, MONO, HL, TINTS, hsl, contrast, derive, complete, encode, decode };
+  // ---------- word codes ----------
+  // Every test result sits on a fixed grid, so the whole result is one big
+  // number in mixed radix (one digit per setting, one per test's effect).
+  // That number is written as made-up three-syllable words, like "bakemo".
+
+  // The staircase grids. The eye test steps along these, so results land on them.
+  const GRID = {
+    tx: { path: ['light', 'tx'], lo: 4, hi: 34, round: 1 },
+    bg: { path: ['light', 'bg'], lo: 84, hi: 100, round: 1 },
+    wm: { path: ['warmth'], lo: 0, hi: 100, round: 5 },
+    sat: { path: ['light', 'sat'], lo: 10, hi: 95, round: 5 },
+    w: { path: ['weight'], lo: 300, hi: 700, round: 50 },
+    ps: { path: ['prose', 'size'], lo: 13, hi: 26, round: 1 },
+    plh: { path: ['prose', 'lineHeight'], lo: 1.2, hi: 2.3, round: 0.05 },
+    pw: { path: ['prose', 'width'], lo: 45, hi: 120, round: 5 },
+    cs: { path: ['size'], lo: 11, hi: 22, round: 1 },
+    clh: { path: ['lineHeight'], lo: 1.2, hi: 2.0, round: 0.05 },
+    hs: { path: ['hl', 'sel'], lo: 3, hi: 30, round: 1 },
+    cl: { path: ['hl', 'line'], lo: 0, hi: 10, round: 0.5 },
+    hf: { path: ['hl', 'find'], lo: 10, hi: 95, round: 5 },
+    cw: { path: ['hl', 'cw'], lo: 1, hi: 5, round: 1 },
+    ls: { path: ['ls'], lo: 0, hi: 1.5, round: 0.1 },
+    pls: { path: ['prose', 'ls'], lo: 0, hi: 1.5, round: 0.1 },
+    ms: { path: ['md', 'size'], lo: 13, hi: 26, round: 1 },
+    mlh: { path: ['md', 'lineHeight'], lo: 1.2, hi: 2.3, round: 0.05 },
+  };
+  const at = (o, p) => p.reduce((a, k) => a[k], o);
+  const put = (o, p, v) => { p.slice(0, -1).reduce((a, k) => (a[k] = a[k] || {}), o)[p[p.length - 1]] = v; };
+  const gridField = g => {
+    const n = Math.round((g.hi - g.lo) / g.round) + 1;
+    return { n, get: c => Math.max(0, Math.min(n - 1, Math.round((at(c, g.path) - g.lo) / g.round))),
+      set: (c, i) => put(c, g.path, Number((g.lo + i * g.round).toFixed(2))) };
+  };
+  const pickField = (path, opts, toName = v => v, fromName = v => v) => ({
+    n: opts.length, get: c => Math.max(0, opts.indexOf(fromName(at(c, path)))), set: (c, i) => put(c, path, toName(opts[i])),
+  });
+  const fontField = (path, keys) => pickField(path, keys, k => FONTS[k], fontKey);
+  const PICKS = {
+    th: pickField(['base'], Object.keys(BASES)),
+    pf: fontField(['prose', 'font'], Object.keys(FONTS)),
+    cf: fontField(['font'], MONO),
+    ht: pickField(['hl', 'tint'], Object.keys(TINTS)),
+    cst: pickField(['hl', 'cst'], ['line', 'block', 'underline']),
+    cc: pickField(['hl', 'cc'], ['a', 't']),
+    mf: fontField(['md', 'font'], Object.keys(FONTS)),
+  };
+  // The eye test's order. fx per test: 0 same (or skipped), 1 slightly, 2 clearly.
+  const TEST_IDS = ['th', 'tx', 'bg', 'wm', 'sat', 'pf', 'w', 'ps', 'plh', 'pw', 'cf', 'cs', 'clh',
+    'hs', 'ht', 'cl', 'hf', 'cst', 'cw', 'cc', 'ls', 'pls', 'mf', 'ms', 'mlh'];
+  const FIELDS = TEST_IDS.map(id => PICKS[id] || gridField(GRID[id]));
+  const CHECK = 251;   // a typo almost always breaks the check digit
+  const CONS = 'bdfghjklmnprstvz', VOW = 'aeiou', SYL = CONS.length * VOW.length, PER_WORD = 3;
+
+  function toWords(c, fx = {}) {
+    complete(c);
+    const digits = [...FIELDS.map(f => f.get(c)), ...TEST_IDS.map(id => fx[id] || 0)];
+    const radix = [...FIELDS.map(f => f.n), ...TEST_IDS.map(() => 3)];
+    const check = digits.reduce((a, d, i) => (a + d * (i + 1)) % CHECK, 0);
+    let big = BigInt(check), cap = BigInt(CHECK);
+    digits.forEach((d, i) => { big = big * BigInt(radix[i]) + BigInt(d); cap *= BigInt(radix[i]); });
+    let syl = 0;
+    for (let x = 1n; x < cap; x *= BigInt(SYL)) syl++;
+    syl = Math.ceil(syl / PER_WORD) * PER_WORD;
+    const out = [];
+    for (let i = 0; i < syl; i++) {
+      const d = Number(big % BigInt(SYL)); big /= BigInt(SYL);
+      out.unshift(CONS[Math.floor(d / VOW.length)] + VOW[d % VOW.length]);
+    }
+    const words = [];
+    for (let i = 0; i < out.length; i += PER_WORD) words.push(out.slice(i, i + PER_WORD).join(''));
+    while (words.length > 1 && words[0] === 'ba'.repeat(PER_WORD)) words.shift();   // leading zeros
+    return words.join(' ');
+  }
+
+  // base supplies what the test never sets (the dark theme's colours).
+  function fromWords(text, base) {
+    const letters = text.toLowerCase().replace(/[^a-z]/g, '');
+    if (!letters || letters.length % 2) throw new Error('Those words are the wrong length. Check for a missing letter.');
+    let big = 0n;
+    for (let i = 0; i < letters.length; i += 2) {
+      const ci = CONS.indexOf(letters[i]), vi = VOW.indexOf(letters[i + 1]);
+      if (ci < 0 || vi < 0) throw new Error(`"${letters.slice(i, i + 2)}" is not a syllable these codes use. Check the spelling.`);
+      big = big * BigInt(SYL) + BigInt(ci * VOW.length + vi);
+    }
+    const radix = [...FIELDS.map(f => f.n), ...TEST_IDS.map(() => 3)];
+    const digits = [];
+    for (let i = radix.length - 1; i >= 0; i--) { digits.unshift(Number(big % BigInt(radix[i]))); big /= BigInt(radix[i]); }
+    const check = digits.reduce((a, d, i) => (a + d * (i + 1)) % CHECK, 0);
+    if (big !== BigInt(check)) throw new Error('The words do not check out. One is probably misspelled.');
+    const c = complete(JSON.parse(JSON.stringify(base)));
+    FIELDS.forEach((f, i) => f.set(c, digits[i]));
+    c.fx = Object.fromEntries(TEST_IDS.map((id, i) => [id, digits[FIELDS.length + i]]));
+    c.nd = TEST_IDS.filter(id => c.fx[id] === 0 && !(id === 'cw' && c.hl.cst === 'block'));
+    return c;
+  }
+
+  const api = { HUES, BASES, FONTS, MONO, HL, TINTS, GRID, TEST_IDS, hsl, contrast, derive, complete, encode, decode, toWords, fromWords };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SoftComfort = api;
 })(this);

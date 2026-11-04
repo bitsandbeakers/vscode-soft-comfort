@@ -5,12 +5,15 @@
 // Apply an eye-test result: node build/generate.js "SC2 b=soft f=fira ..."
 const fs = require('fs');
 const path = require('path');
-const { derive, contrast, decode, complete } = require('./palette');
+const { derive, contrast, decode, complete, fromWords } = require('./palette');
 
 const root = path.join(__dirname, '..');
 const calFile = path.join(__dirname, 'calibration.json');
 if (process.argv[2]) {
-  fs.writeFileSync(calFile, JSON.stringify(decode(process.argv[2]), null, 2) + '\n');
+  // An SC2 line, or the eye test's words (which take the dark colours from the current calibration).
+  const arg = process.argv.slice(2).join(' ');
+  const next = /^\s*sc2/i.test(arg) ? decode(arg) : fromWords(arg, JSON.parse(fs.readFileSync(calFile, 'utf8')));
+  fs.writeFileSync(calFile, JSON.stringify(next, null, 2) + '\n');
 }
 const cal = complete(JSON.parse(fs.readFileSync(calFile, 'utf8')));
 

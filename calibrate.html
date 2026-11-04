@@ -58,7 +58,7 @@
   table.sum { border-collapse:collapse; font-size:.93rem; }
   table.sum td { padding:4px 14px 4px 0; vertical-align:top; }
   table.sum td:first-child { color:var(--muted); white-space:nowrap; }
-  .key { font:700 2rem system-ui, sans-serif; letter-spacing:.02em; color:var(--accent); user-select:all; }
+  .key { font:700 clamp(1.3rem, 4vw, 2rem)/1.4 ui-monospace, Consolas, monospace; word-spacing:.3em; letter-spacing:.02em; color:var(--accent); user-select:all; }
   kbd { font:600 .8rem ui-monospace, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:5px; padding:1px 6px; background:var(--chip); }
   .ev { font-size:.78rem; font-weight:650; padding:1px 7px; border-radius:999px; border:1px solid var(--line); white-space:nowrap; }
   [hidden] { display:none !important; }
@@ -96,7 +96,7 @@
     <p class="muted" id="refinehint">Refine runs every test again, starting from the settings you have now, so each test only checks the values next to yours.</p>
     <details id="partial">
       <summary>Start from a different code, or from a later part</summary>
-      <p class="muted">The box holds your latest calibration. Paste a different SC2 line to start from that instead.</p>
+      <p class="muted">The box holds your latest calibration. Type the words from another run, or paste an SC2 line, to start from that instead.</p>
       <input id="startcode" type="text" spellcheck="false" style="font:500 .9rem ui-monospace, monospace;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);width:100%">
       <div class="row">
         <label class="muted" for="frompart">From part</label>
@@ -138,19 +138,17 @@
 
   <!-- Result screen -->
   <section id="done" class="card" hidden>
-    <h2 id="donehead">Done.</h2>
-    <div id="keybox" hidden>
-      <p>Tell Claude these two words:</p>
-      <div class="key" id="key"></div>
-      <p class="muted">Saved. "Latest" works too.</p>
+    <h2>Done. Type these words back to Claude:</h2>
+    <div class="key" id="key"></div>
+    <p class="muted">They hold every setting and how much each test mattered. A built-in check catches typos.</p>
+    <div class="row">
+      <button class="b primary" id="copy" type="button">Copy</button>
+      <button class="b" id="restart" type="button">Start over</button>
     </div>
-    <p class="muted" id="savemsg"></p>
-    <details id="codebox">
-      <summary>Full code (if the two words don't work)</summary>
+    <details>
+      <summary>Long code (same result)</summary>
       <div class="code" id="code"></div>
-      <div class="row" style="margin-top:8px"><button class="b" id="copy" type="button">Copy</button></div>
     </details>
-    <div class="row"><button class="b" id="restart" type="button">Start over</button></div>
     <details>
       <summary>What you picked</summary>
       <table class="sum" id="sum"></table>
@@ -200,60 +198,60 @@ const TESTS = [
     options: () => Object.keys(SC.BASES), get: c => c.base,
     apply: (c, v) => { const B = SC.BASES[v]; c.base = v; c.warmth = B.warmth; c.light = { ...B.light }; c.dark = { ...B.dark }; } },
   { id: 'tx', part: 1, kind: 'stair', sample: 'prose', q: 'Which text can you read longer without effort?',
-    hint: 'Read a whole line. Too faint makes you strain; too harsh can shimmer.', path: ['light', 'tx'], lo: 4, hi: 34, step: 8, round: 1 },
+    hint: 'Read a whole line. Too faint makes you strain; too harsh can shimmer.', ...SC.GRID.tx, step: 8 },
   { id: 'bg', part: 1, kind: 'stair', sample: 'prose', q: 'Which background is easier to look at?',
-    hint: 'Brighter is crisper, dimmer is gentler. Notice any glare.', path: ['light', 'bg'], lo: 84, hi: 100, step: 4, round: 1 },
+    hint: 'Brighter is crisper, dimmer is gentler. Notice any glare.', ...SC.GRID.bg, step: 4 },
   { id: 'wm', part: 1, kind: 'stair', sample: 'prose', q: 'Which tint is more comfortable?',
-    hint: 'Cool grey vs warm paper.', path: ['warmth'], lo: 0, hi: 100, step: 30, round: 5 },
+    hint: 'Cool grey vs warm paper.', ...SC.GRID.wm, step: 30 },
   { id: 'sat', part: 1, kind: 'stair', sample: 'both', q: 'Which colour strength helps more?',
-    hint: 'Headings, bold, links, bullets and code. Do the colours guide you or distract you?', path: ['light', 'sat'], lo: 10, hi: 95, step: 25, round: 1 },
+    hint: 'Headings, bold, links, bullets and code. Do the colours guide you or distract you?', ...SC.GRID.sat, step: 25 },
   { id: 'pf', part: 2, kind: 'pick', sample: 'prose', q: 'Which font is easiest to read in paragraphs?',
     hint: 'Read a full sentence in each.',
     options: c => uniq(['Atkinson Hyperlegible Next', 'Inter', 'IBM Plex Sans', 'Literata', 'Atkinson Hyperlegible Mono', c.font]),
     get: c => c.prose.font, apply: (c, v) => { c.prose.font = v; } },
   { id: 'w', part: 2, kind: 'stair', sample: 'prose', q: 'Which stroke thickness is clearer?',
-    hint: 'Thin strokes can blur or halo; heavy strokes can smear.', path: ['weight'], lo: 300, hi: 700, step: 100, round: 50 },
+    hint: 'Thin strokes can blur or halo; heavy strokes can smear.', ...SC.GRID.w, step: 100 },
   { id: 'ps', part: 2, kind: 'stair', sample: 'prose', q: 'Which text size reads without leaning in?',
-    path: ['prose', 'size'], lo: 13, hi: 26, step: 3, round: 1 },
+    ...SC.GRID.ps, step: 3 },
   { id: 'plh', part: 2, kind: 'stair', sample: 'prose', q: 'Which line spacing makes it easier to keep your place?',
-    hint: 'Read to the end of a line and jump to the next.', path: ['prose', 'lineHeight'], lo: 1.2, hi: 2.3, step: 0.3, round: 0.05 },
+    hint: 'Read to the end of a line and jump to the next.', ...SC.GRID.plh, step: 0.3 },
   { id: 'pw', part: 2, kind: 'stair', sample: 'prose', q: 'Which line length is more comfortable?',
-    hint: 'Long lines make the jump back to the start of the next line harder.', path: ['prose', 'width'], lo: 45, hi: 120, step: 20, round: 5 },
+    hint: 'Long lines make the jump back to the start of the next line harder.', ...SC.GRID.pw, step: 20 },
   { id: 'cf', part: 3, kind: 'pick', sample: 'code', q: 'Which code font is sharper?',
     hint: 'Check 0 O, 1 l I, and the brackets.', options: () => SC.MONO.map(k => SC.FONTS[k]),
     get: c => c.font, apply: (c, v) => { c.font = v; } },
   { id: 'cs', part: 3, kind: 'stair', sample: 'code', q: 'Which code size reads without effort?',
-    path: ['size'], lo: 11, hi: 22, step: 2, round: 1 },
+    ...SC.GRID.cs, step: 2 },
   { id: 'clh', part: 3, kind: 'stair', sample: 'code', q: 'Which code line spacing is calmer?',
-    path: ['lineHeight'], lo: 1.2, hi: 2.0, step: 0.3, round: 0.05 },
+    ...SC.GRID.clh, step: 0.3 },
   { id: 'hs', part: 4, kind: 'stair', sample: 'both', q: 'Which selection is easy to see without glaring?',
-    hint: 'Selected: "two days ahead of plan" in the paragraph, and o.qty > 0 in the code.', path: ['hl', 'sel'], lo: 3, hi: 30, step: 8, round: 1 },
+    hint: 'Selected: "two days ahead of plan" in the paragraph, and o.qty > 0 in the code.', ...SC.GRID.hs, step: 8 },
   { id: 'ht', part: 4, kind: 'pick', sample: 'both', q: 'Which selection colour works best?',
     hint: 'Grey, blue, amber or green behind the selected text.', options: () => Object.keys(SC.TINTS),
     get: c => c.hl.tint, apply: (c, v) => { c.hl.tint = v; } },
   { id: 'cl', part: 4, kind: 'stair', sample: 'code', q: 'Which current-line highlight helps you keep your place?',
-    hint: 'The line with fetch( is the current line. It only needs to be findable.', path: ['hl', 'line'], lo: 0, hi: 10, step: 3, round: 0.5 },
+    hint: 'The line with fetch( is the current line. It only needs to be findable.', ...SC.GRID.cl, step: 3 },
   { id: 'hf', part: 4, kind: 'stair', sample: 'code', q: 'Which search highlight is easier to spot?',
-    hint: 'Every "res" is a search hit; the first one is the current hit.', path: ['hl', 'find'], lo: 10, hi: 95, step: 25, round: 5 },
+    hint: 'Every "res" is a search hit; the first one is the current hit.', ...SC.GRID.hf, step: 25 },
   { id: 'cst', part: 4, kind: 'pick', sample: 'both', q: 'Which cursor is easiest to find at a glance?',
     hint: 'It sits after "Tuesday," in the text and before ( after fetch in the code.', options: () => ['line', 'block', 'underline'],
     get: c => c.hl.cst, apply: (c, v) => { c.hl.cst = v; } },
   { id: 'cw', part: 4, kind: 'stair', sample: 'both', q: 'Which cursor thickness is easiest to find?',
-    path: ['hl', 'cw'], lo: 1, hi: 5, step: 2, round: 1, skip: c => c.hl.cst === 'block' },
+    ...SC.GRID.cw, step: 2, skip: c => c.hl.cst === 'block' },
   { id: 'cc', part: 4, kind: 'pick', sample: 'both', q: 'Which cursor colour is easier to find?',
     options: () => ['a', 't'], get: c => c.hl.cc, apply: (c, v) => { c.hl.cc = v; } },
   { id: 'ls', part: 5, kind: 'stair', sample: 'code', q: 'Which letter spacing makes code easier to read?',
-    hint: 'Look at long names like retention_days and loadOrders.', path: ['ls'], lo: 0, hi: 1.5, step: 0.5, round: 0.1 },
+    hint: 'Look at long names like retention_days and loadOrders.', ...SC.GRID.ls, step: 0.5 },
   { id: 'pls', part: 5, kind: 'stair', sample: 'prose', q: 'Which letter spacing makes paragraphs easier to read?',
-    path: ['prose', 'ls'], lo: 0, hi: 1.5, step: 0.5, round: 0.1 },
+    ...SC.GRID.pls, step: 0.5 },
   { id: 'mf', part: 5, kind: 'pick', sample: 'preview', q: 'Markdown preview: which font reads best?',
     hint: 'This is the rendered reading view (Ctrl+Shift+V in VS Code), not the editor.',
     options: c => uniq([c.prose.font, 'Atkinson Hyperlegible Next', 'Inter', 'IBM Plex Sans', 'Literata']),
     get: c => c.md.font, apply: (c, v) => { c.md.font = v; } },
   { id: 'ms', part: 5, kind: 'stair', sample: 'preview', q: 'Markdown preview: which size reads without leaning in?',
-    path: ['md', 'size'], lo: 13, hi: 26, step: 3, round: 1 },
+    ...SC.GRID.ms, step: 3 },
   { id: 'mlh', part: 5, kind: 'stair', sample: 'preview', q: 'Markdown preview: which line spacing is easier to follow?',
-    path: ['md', 'lineHeight'], lo: 1.2, hi: 2.3, step: 0.3, round: 0.05 },
+    ...SC.GRID.mlh, step: 0.3 },
 ];
 const MAX_ROUNDS = 7;
 
@@ -271,6 +269,7 @@ const store = { get: k => { try { return localStorage.getItem(k); } catch { retu
 let st, pair, view, seen, history = [];
 
 // fx: per test, the strongest preference given (0 same, 1 slightly, 2 clearly).
+if (SC && TESTS.some(t => !SC.TEST_IDS.includes(t.id))) console.warn('palette.js TEST_IDS is missing a test; its words will drop it.');
 const fresh = () => ({ cal: clone(START), ti: 0, sub: null, nd: [], fx: {}, answers: 0, ndAnswers: 0 });
 
 function beginTest() {
@@ -361,7 +360,7 @@ function finish() {
   const fx = TESTS.map(t => (t.id in st.fx ? '0sc'[st.fx[t.id]] : '-')).join('');
   const code = SC.encode(st.cal) + (st.nd.length ? ` nd=${st.nd.join('.')}` : '') + ` fx=${fx}`;
   $('code').textContent = code;
-  save(code);
+  $('key').textContent = SC.toWords(clone(st.cal), st.fx);
   const c = st.cal, p = SC.derive('light', c.light, c.warmth, c.base);
   const rows = [
     ['Theme', SC.BASES[c.base].label],
@@ -379,35 +378,6 @@ function finish() {
     }),
   ];
   $('sum').innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${esc(v)}</td></tr>`).join('');
-}
-
-// ---------- saving ----------
-// On claude.ai the result goes to the artifact's database under two short
-// words, so only those need typing back. Elsewhere the full code is the result.
-const WORDS_A = ['amber', 'blue', 'calm', 'coral', 'dusty', 'early', 'fern', 'gold', 'happy', 'ivory', 'jade', 'kind',
-  'lemon', 'mint', 'navy', 'olive', 'pale', 'quiet', 'rose', 'sage', 'teal', 'umber', 'warm', 'young'];
-const WORDS_B = ['otter', 'heron', 'fox', 'badger', 'wren', 'moth', 'trout', 'owl', 'hare', 'finch', 'seal', 'crane',
-  'lynx', 'robin', 'stoat', 'swan', 'toad', 'vole', 'whale', 'yak', 'zebra', 'puffin', 'koala', 'lark'];
-const pickWord = a => a[Math.floor(Math.random() * a.length)];
-
-async function save(code) {
-  $('keybox').hidden = true; $('codebox').open = true; $('savemsg').textContent = '';
-  $('donehead').textContent = 'Done. Paste the full code back to Claude:';
-  const db = await Promise.race([window.claude?.use ? window.claude.use('db') : null,
-    new Promise(r => setTimeout(() => r(null), 10000))]);
-  if (!db) return;
-  $('savemsg').textContent = 'Saving…';
-  try {
-    const key = `${pickWord(WORDS_A)} ${pickWord(WORDS_B)}`;
-    const row = { key, code, fx: st.fx, nd: st.nd, at: new Date().toISOString() };
-    await db.doc('results/' + key.replace(' ', '-')).set(row);
-    await db.doc('results/latest').set(row);
-    $('key').textContent = key;
-    $('keybox').hidden = false; $('codebox').open = false; $('savemsg').textContent = '';
-    $('donehead').textContent = 'Done.';
-  } catch (e) {
-    $('savemsg').textContent = `Couldn't save (${e && e.code || 'error'}). Paste the full code below instead.`;
-  }
 }
 
 // ---------- samples ----------
@@ -555,7 +525,8 @@ $('go').addEventListener('click', () => { st = fresh(); history = []; show('test
 // their "made no difference" marks; the parts being rerun record afresh.
 function startFrom(code, part) {
   let cal;
-  try { cal = SC.decode(code); } catch (e) { $('starterr').textContent = 'That code did not parse. Check it starts with SC2.'; return; }
+  try { cal = /^\s*sc2/i.test(code) ? SC.decode(code) : SC.fromWords(code, LAST || START); }
+  catch (e) { $('starterr').textContent = e.message; return; }
   st = fresh();
   const before = new Set(TESTS.filter(t => t.part < part).map(t => t.id));
   st.cal = cal; st.nd = (cal.nd || []).filter(id => before.has(id)); delete cal.nd;
@@ -566,8 +537,11 @@ $('frompart').innerHTML = PARTS.map((n, i) => `<option value="${i}">${i + 1}. ${
 $('gonew').addEventListener('click', () => startFrom($('startcode').value, Number($('frompart').value)));
 $('gorefine').addEventListener('click', () => startFrom($('startcode').value, 0));
 // Fill the start box with the latest calibration, then allow Refine.
+// LAST also supplies what the words don't carry (the dark theme's colours).
+let LAST = null;
 if (SC) fetch('build/calibration.json', { cache: 'no-store' }).then(r => r.json())
   .then(j => {
+    LAST = SC.complete(j); delete LAST.nd;
     if (!$('startcode').value) $('startcode').value = SC.encode(SC.complete(j));
     $('gorefine').disabled = false;
   }).catch(() => { $('refinehint').textContent = 'Could not load your last calibration. Open "Start from a different code" and paste your SC2 line.'; });
@@ -579,8 +553,8 @@ $('split').checked = store.get('sc-split') === '1';
 $('split').addEventListener('change', () => { store.set('sc-split', $('split').checked ? '1' : '0'); if (pair && !$('test').hidden) render(); });
 $('restart').addEventListener('click', () => { show('setup'); $('prog').style.width = '0'; });
 $('copy').addEventListener('click', () => {
-  navigator.clipboard.writeText($('code').textContent).then(() => { $('copy').textContent = 'Copied'; }, () => {
-    const r = document.createRange(); r.selectNodeContents($('code'));
+  navigator.clipboard.writeText($('key').textContent).then(() => { $('copy').textContent = 'Copied'; }, () => {
+    const r = document.createRange(); r.selectNodeContents($('key'));
     getSelection().removeAllRanges(); getSelection().addRange(r);
   });
 });
