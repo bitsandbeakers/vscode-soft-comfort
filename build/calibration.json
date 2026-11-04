@@ -9,7 +9,8 @@
     "font": "IBM Plex Sans",
     "size": 15,
     "lineHeight": 1.75,
-    "width": 75
+    "width": 75,
+    "ls": 0
   },
   "light": {
     "bg": 97,
@@ -20,5 +21,21 @@
     "bg": 17,
     "tx": 82,
     "sat": 45
-  }
+  },
+  "hl": {
+    "sel": 11,
+    "tint": "n",
+    "line": 2.5,
+    "find": 50,
+    "cw": 4,
+    "cst": "line",
+    "cc": "a"
+  },
+  "ls": 0.4,
+  "md": {
+    "font": "Literata",
+    "size": 24,
+    "lineHeight": 1.45
+  },
+  "nd": []
 }
