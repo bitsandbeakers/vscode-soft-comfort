@@ -10,7 +10,7 @@
   "editor.cursorBlinking": "solid",
   "editor.cursorStyle": "line",
   "editor.cursorWidth": 4,
-  "markdown.preview.fontFamily": "'Literata', Georgia, serif",
+  "markdown.preview.fontFamily": "'Literata', 'Literata 12pt', Georgia, serif",
   "markdown.preview.fontSize": 24,
   "markdown.preview.lineHeight": 1.45,
   "editor.minimap.enabled": false,

@@ -259,7 +259,7 @@ const settings = {
   'editor.cursorStyle': cal.hl.cst,
   'editor.cursorWidth': cal.hl.cw,
   // The rendered Markdown preview has its own type settings.
-  'markdown.preview.fontFamily': `'${cal.md.font}', ${cal.md.font === 'Literata' ? 'Georgia, serif' : "'Segoe UI', sans-serif"}`,
+  'markdown.preview.fontFamily': `'${cal.md.font}', ${cal.md.font === 'Literata' ? "'Literata 12pt', Georgia, serif" : "'Segoe UI', sans-serif"}`,
   'markdown.preview.fontSize': cal.md.size,
   'markdown.preview.lineHeight': cal.md.lineHeight,
   'editor.minimap.enabled': false,
