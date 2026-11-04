@@ -61,16 +61,16 @@ Outside the editor:
 
 ## Eye test (calibration)
 
-Open [the eye test](https://bitsandbeakers.github.io/vscode-soft-comfort/calibrate.html) on the monitor you code on, at your normal distance and lighting. It works like an optician's test: two blind options per question, pick the one that's clearer and calmer, about 3 minutes. At the end it gives one short line like:
+Open [the eye test](https://bitsandbeakers.github.io/vscode-soft-comfort/calibrate.html) on the monitor you code on, at your normal distance and lighting. It works like an optician's test: two blind options per question, pick the one that's clearer and calmer, about 10 minutes: theme first, then its colours, writing text, and code. At the end it gives one short line like:
 
 ```
-SC1 f=fira w=500 s=15 lh=1.6 wm=40 L=93,25,45 D=18,79,50
+SC2 b=soft f=fira w=500 s=14 lh=1.6 wm=100 pf=ahn ps=18 plh=1.5 pw=80 L=93,22,60 D=17,82,45
 ```
 
 Rebuild the themes and `settings.json` from it:
 
 ```
-node build/generate.js "SC1 f=fira w=500 s=15 lh=1.6 wm=40 L=93,25,45 D=18,79,50"
+node build/generate.js "SC2 b=soft f=fira w=500 s=14 lh=1.6 wm=100 pf=ahn ps=18 plh=1.5 pw=80 L=93,22,60 D=17,82,45"
 ```
 
 ## Tuning
