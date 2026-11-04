@@ -1,20 +1,20 @@
 {
   "base": "soft",
-  "font": "Fira Code",
-  "weight": 500,
-  "size": 14,
+  "font": "JetBrains Mono",
+  "weight": 600,
+  "size": 15,
   "lineHeight": 1.6,
   "warmth": 100,
   "prose": {
-    "font": "Atkinson Hyperlegible Next",
-    "size": 18,
-    "lineHeight": 1.5,
-    "width": 80
+    "font": "IBM Plex Sans",
+    "size": 15,
+    "lineHeight": 1.75,
+    "width": 75
   },
   "light": {
-    "bg": 93,
+    "bg": 97,
     "tx": 22,
-    "sat": 60
+    "sat": 73
   },
   "dark": {
     "bg": 17,
