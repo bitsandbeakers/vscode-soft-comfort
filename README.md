@@ -21,7 +21,11 @@ Built around three problems: text that glows or blurs, tired aching eyes, and sq
 
 ## Recommended settings
 
-The theme is half of it. These settings do the rest:
+The theme is half of it. These settings do the rest.
+
+**Quick version:** copy everything inside the braces of [`settings.json`](settings.json) in this repo. In VS Code, press Ctrl+Shift+P → **Preferences: Open User Settings (JSON)**. Paste it before the final `}`, and add a comma after the line above it.
+
+Full version with the reasons:
 
 ```jsonc
 {
