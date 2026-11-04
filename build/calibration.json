@@ -1,41 +1,45 @@
 {
-  "base": "soft",
-  "font": "JetBrains Mono",
+  "base": "sepia",
+  "font": "Fira Code",
   "weight": 600,
   "size": 15,
   "lineHeight": 1.6,
   "warmth": 100,
   "prose": {
-    "font": "IBM Plex Sans",
-    "size": 15,
-    "lineHeight": 1.75,
-    "width": 75,
-    "ls": 0
+    "font": "Atkinson Hyperlegible Next",
+    "size": 14,
+    "lineHeight": 1.45,
+    "width": 90,
+    "ls": 0.1
   },
   "light": {
-    "bg": 97,
-    "tx": 22,
-    "sat": 73
+    "bg": 89,
+    "tx": 16,
+    "sat": 50
   },
   "dark": {
-    "bg": 17,
-    "tx": 82,
-    "sat": 45
+    "bg": 15,
+    "tx": 80,
+    "sat": 40
   },
   "hl": {
-    "sel": 11,
+    "sel": 23,
     "tint": "n",
-    "line": 2.5,
+    "line": 10,
     "find": 50,
     "cw": 4,
-    "cst": "line",
+    "cst": "block",
     "cc": "a"
   },
-  "ls": 0.4,
+  "ls": 0.2,
   "md": {
-    "font": "Literata",
-    "size": 24,
+    "font": "IBM Plex Sans",
+    "size": 13,
     "lineHeight": 1.45
   },
-  "nd": []
+  "nd": [
+    "tx",
+    "sat",
+    "cc"
+  ]
 }
