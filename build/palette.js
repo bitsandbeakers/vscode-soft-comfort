@@ -39,6 +39,27 @@
       roles: { keyword: [301, 0], string: [120, -10], func: [221, 10], number: [35, 10], type: [45, 15], param: [5, 10] },
       light: { bg: 98, tx: 18, sat: 60 }, dark: { bg: 17, tx: 80, sat: 45 },
     },
+    // Popular dark themes, taken from their official light variants.
+    tokyo: {
+      label: 'Tokyo Night Day-style', warmth: 0,
+      roles: { keyword: [266, 15], string: [90, -5], func: [215, 15], number: [32, 15], type: [195, 10], param: [343, 10] },
+      light: { bg: 90, tx: 20, sat: 70 }, dark: { bg: 14, tx: 82, sat: 55 },
+    },
+    monokai: {
+      label: 'Monokai Pro Light-style', warmth: 75,
+      roles: { keyword: [342, 15], string: [35, 15], func: [153, 5], number: [254, 10], type: [192, 10], param: [16, 15] },
+      light: { bg: 97, tx: 18, sat: 65 }, dark: { bg: 16, tx: 84, sat: 55 },
+    },
+    solarized: {
+      label: 'Solarized Light-style', warmth: 100,
+      roles: { keyword: [68, 10], string: [175, 0], func: [205, 10], number: [331, 5], type: [45, 15], param: [18, 10] },
+      light: { bg: 94, tx: 22, sat: 70 }, dark: { bg: 14, tx: 80, sat: 55 },
+    },
+    gruvbox: {
+      label: 'Gruvbox Light-style', warmth: 100,
+      roles: { keyword: [358, 15], string: [58, 5], func: [143, 0], number: [323, 5], type: [37, 15], param: [189, 10] },
+      light: { bg: 90, tx: 18, sat: 65 }, dark: { bg: 15, tx: 82, sat: 50 },
+    },
   };
 
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -238,28 +259,53 @@
   const CHECK = 251;   // a typo almost always breaks the check digit
   const CONS = 'bdfghjklmnprstvz', VOW = 'aeiou', SYL = CONS.length * VOW.length, PER_WORD = 3;
 
-  function toWords(c, fx = {}) {
-    complete(c);
-    const digits = [...FIELDS.map(f => f.get(c)), ...TEST_IDS.map(id => fx[id] || 0)];
-    const radix = [...FIELDS.map(f => f.n), ...TEST_IDS.map(() => 3)];
-    const check = digits.reduce((a, d, i) => (a + d * (i + 1)) % CHECK, 0);
-    let big = BigInt(check), cap = BigInt(CHECK);
-    digits.forEach((d, i) => { big = big * BigInt(radix[i]) + BigInt(d); cap *= BigInt(radix[i]); });
-    let syl = 0;
-    for (let x = 1n; x < cap; x *= BigInt(SYL)) syl++;
-    syl = Math.ceil(syl / PER_WORD) * PER_WORD;
-    const out = [];
-    for (let i = 0; i < syl; i++) {
-      const d = Number(big % BigInt(SYL)); big /= BigInt(SYL);
-      out.unshift(CONS[Math.floor(d / VOW.length)] + VOW[d % VOW.length]);
+  // Digits are written least significant first: d0 + r0*(d1 + r1*(d2 + ...)),
+  // so the decoder can learn each next radix from the digits before it.
+  const RADIX = [...FIELDS.map(f => f.n), ...TEST_IDS.map(() => 3)];
+  const values = (c, fx = {}) => [...FIELDS.map(f => f.get(complete(c))), ...TEST_IDS.map(id => fx[id] || 0)];
+  const sumCheck = (ds, m) => ds.reduce((a, d, i) => (a + d * (i + 1)) % m, 0);
+
+  // Full: every value. Changes: only the values that differ from a base
+  // calibration (a refine run), as (gap to the next changed slot, new value).
+  function payload(v, b) {
+    if (!b) return { mode: 0, digits: v.map((d, i) => [d, RADIX[i]]) };
+    const ds = [[sumCheck(b, CHECK), CHECK]];
+    const changed = v.map((d, i) => i).filter(i => v[i] !== b[i]);
+    ds.push([changed.length, RADIX.length + 1]);
+    let next = 0;
+    for (const i of changed) {
+      ds.push([i - next, RADIX.length - next]);
+      ds.push([v[i] < b[i] ? v[i] : v[i] - 1, RADIX[i] - 1]);   // the base value can't recur
+      next = i + 1;
     }
+    return { mode: 1, digits: ds };
+  }
+
+  function spell(digits) {
+    let big = 0n, mult = 1n;
+    for (const [d, r] of digits) { big += BigInt(d) * mult; mult *= BigInt(r); }
+    const syl = [];
+    while (big > 0n || syl.length === 0) { syl.unshift(Number(big % BigInt(SYL))); big /= BigInt(SYL); }
+    while (syl.length % PER_WORD) syl.unshift(0);
+    const out = syl.map(d => CONS[Math.floor(d / VOW.length)] + VOW[d % VOW.length]);
     const words = [];
     for (let i = 0; i < out.length; i += PER_WORD) words.push(out.slice(i, i + PER_WORD).join(''));
-    while (words.length > 1 && words[0] === 'ba'.repeat(PER_WORD)) words.shift();   // leading zeros
     return words.join(' ');
   }
 
-  // base supplies what the test never sets (the dark theme's colours).
+  // base: the calibration the run started from, if any. Gives the shorter code.
+  function toWords(c, fx = {}, base = null) {
+    const v = values(JSON.parse(JSON.stringify(c)), fx);
+    const options = [payload(v)];
+    if (base) options.push(payload(v, values(JSON.parse(JSON.stringify(base)), base.fx)));
+    return options.map(({ mode, digits }) => {
+      const body = digits.map(x => x[0]);
+      return spell([[mode, 2], [sumCheck(body, CHECK), CHECK], ...digits]);
+    }).sort((a, b) => a.length - b.length)[0];
+  }
+
+  // base: the current calibration. It supplies what the words don't carry
+  // (the dark colours), and for a changes-only code, everything unchanged.
   function fromWords(text, base) {
     const letters = text.toLowerCase().replace(/[^a-z]/g, '');
     if (!letters || letters.length % 2) throw new Error('Those words are the wrong length. Check for a missing letter.');
@@ -269,14 +315,32 @@
       if (ci < 0 || vi < 0) throw new Error(`"${letters.slice(i, i + 2)}" is not a syllable these codes use. Check the spelling.`);
       big = big * BigInt(SYL) + BigInt(ci * VOW.length + vi);
     }
-    const radix = [...FIELDS.map(f => f.n), ...TEST_IDS.map(() => 3)];
-    const digits = [];
-    for (let i = radix.length - 1; i >= 0; i--) { digits.unshift(Number(big % BigInt(radix[i]))); big /= BigInt(radix[i]); }
-    const check = digits.reduce((a, d, i) => (a + d * (i + 1)) % CHECK, 0);
-    if (big !== BigInt(check)) throw new Error('The words do not check out. One is probably misspelled.');
+    const body = [];
+    const read = r => { const d = Number(big % BigInt(r)); big /= BigInt(r); body.push(d); return d; };
+    const bad = () => new Error('The words do not check out. One is probably misspelled.');
+    const mode = Number(big % 2n); big /= 2n;
+    const check = Number(big % BigInt(CHECK)); big /= BigInt(CHECK);
+    const b = values(JSON.parse(JSON.stringify(base)), base.fx);
+    let v;
+    if (mode === 0) v = RADIX.map(r => read(r));
+    else {
+      if (read(CHECK) !== sumCheck(b, CHECK)) throw new Error('These words were made from a different starting calibration than the current one.');
+      v = b.slice();
+      const k = read(RADIX.length + 1);
+      let next = 0;
+      for (let j = 0; j < k; j++) {
+        const i = next + read(RADIX.length - next);
+        if (i >= RADIX.length) throw bad();
+        const alt = read(RADIX[i] - 1);
+        v[i] = alt < b[i] ? alt : alt + 1;
+        next = i + 1;
+      }
+    }
+    if (big !== 0n || check !== sumCheck(body, CHECK)) throw bad();
     const c = complete(JSON.parse(JSON.stringify(base)));
-    FIELDS.forEach((f, i) => f.set(c, digits[i]));
-    c.fx = Object.fromEntries(TEST_IDS.map((id, i) => [id, digits[FIELDS.length + i]]));
+    delete c.nd;
+    FIELDS.forEach((f, i) => f.set(c, v[i]));
+    c.fx = Object.fromEntries(TEST_IDS.map((id, i) => [id, v[FIELDS.length + i]]));
     c.nd = TEST_IDS.filter(id => c.fx[id] === 0 && !(id === 'cw' && c.hl.cst === 'block'));
     return c;
   }

@@ -140,7 +140,7 @@
   <section id="done" class="card" hidden>
     <h2>Done. Type these words back to Claude:</h2>
     <div class="key" id="key"></div>
-    <p class="muted">They hold every setting and how much each test mattered. A built-in check catches typos.</p>
+    <p class="muted">They hold every setting and how much each test mattered, as changes from your last calibration when that's shorter. A built-in check catches typos.</p>
     <div class="row">
       <button class="b primary" id="copy" type="button">Copy</button>
       <button class="b" id="restart" type="button">Start over</button>
@@ -360,7 +360,8 @@ function finish() {
   const fx = TESTS.map(t => (t.id in st.fx ? '0sc'[st.fx[t.id]] : '-')).join('');
   const code = SC.encode(st.cal) + (st.nd.length ? ` nd=${st.nd.join('.')}` : '') + ` fx=${fx}`;
   $('code').textContent = code;
-  $('key').textContent = SC.toWords(clone(st.cal), st.fx);
+  // Against the repo's calibration, so a refine run that changed little gives few words.
+  $('key').textContent = SC.toWords(clone(st.cal), st.fx, LAST);
   const c = st.cal, p = SC.derive('light', c.light, c.warmth, c.base);
   const rows = [
     ['Theme', SC.BASES[c.base].label],
@@ -530,6 +531,7 @@ function startFrom(code, part) {
   st = fresh();
   const before = new Set(TESTS.filter(t => t.part < part).map(t => t.id));
   st.cal = cal; st.nd = (cal.nd || []).filter(id => before.has(id)); delete cal.nd;
+  st.fx = Object.fromEntries(Object.entries(cal.fx || {}).filter(([id]) => before.has(id))); delete cal.fx;
   st.ti = TESTS.findIndex(t => t.part >= part);
   history = []; show('test'); beginTest();
 }
@@ -537,7 +539,8 @@ $('frompart').innerHTML = PARTS.map((n, i) => `<option value="${i}">${i + 1}. ${
 $('gonew').addEventListener('click', () => startFrom($('startcode').value, Number($('frompart').value)));
 $('gorefine').addEventListener('click', () => startFrom($('startcode').value, 0));
 // Fill the start box with the latest calibration, then allow Refine.
-// LAST also supplies what the words don't carry (the dark theme's colours).
+// LAST also supplies what the words don't carry (the dark theme's colours),
+// and is what a changes-only result is measured against.
 let LAST = null;
 if (SC) fetch('build/calibration.json', { cache: 'no-store' }).then(r => r.json())
   .then(j => {
